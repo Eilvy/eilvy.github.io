@@ -1,4 +1,6 @@
 ---
+import '../styles/global.css';
+
 interface Props {
 	title: string;
 	description?: string;
@@ -40,9 +42,6 @@ const ogImage = image ? new URL(image, siteURL) : new URL('/og-image.png', siteU
 		<!-- Preconnect to fonts -->
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-		
-		<!-- Global styles -->
-		<link rel="stylesheet" href="/styles/global.css" />
 	</head>
 	<body>
 		<a href="#main-content" class="skip-link">跳转到主要内容</a>

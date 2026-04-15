@@ -99,168 +99,168 @@ import { SITE_TITLE } from '../consts';
 			</section>
 		</div>
 	</div>
-</BlogLayout>
-
-<style>
-	.about-page {
-		width: 100%;
-		max-width: 800px;
-		margin: 0 auto;
-		padding: 3em 1em;
-	}
 	
-	.about-header {
-		text-align: center;
-		margin-bottom: 3em;
-		padding: 2em;
-		background: linear-gradient(135deg, var(--color-bg-secondary) 0%, var(--color-bg) 100%);
-		border-radius: 16px;
-		border: 1px solid var(--color-border);
-	}
-	
-	.about-header h1 {
-		font-size: 2.5rem;
-		margin: 0 0 0.5em 0;
-		background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-		-webkit-background-clip: text;
-		-webkit-text-fill-color: transparent;
-		background-clip: text;
-	}
-	
-	.about-header .subtitle {
-		font-size: 1.125rem;
-		color: var(--color-text-light);
-		margin: 0;
-	}
-	
-	.about-content {
-		display: flex;
-		flex-direction: column;
-		gap: 3em;
-	}
-	
-	section h2 {
-		font-size: 1.75rem;
-		margin-bottom: 1em;
-		color: var(--color-text);
-	}
-	
-	.intro p {
-		line-height: 1.8;
-		color: var(--color-text);
-		margin-bottom: 1em;
-	}
-	
-	.skill-categories {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-		gap: 1.5em;
-	}
-	
-	.skill-category {
-		background-color: var(--color-bg-secondary);
-		padding: 1.5em;
-		border-radius: 12px;
-		border: 1px solid var(--color-border);
-	}
-	
-	.skill-category h3 {
-		font-size: 1.125rem;
-		margin: 0 0 1em 0;
-		color: var(--color-primary);
-	}
-	
-	.skill-list {
-		list-style: none;
-		padding: 0;
-		margin: 0;
-	}
-	
-	.skill-list li {
-		padding: 0.5em 0;
-		color: var(--color-text);
-		border-bottom: 1px solid var(--color-border);
-	}
-	
-	.skill-list li:last-child {
-		border-bottom: none;
-	}
-	
-	.interests-list {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.75em;
-	}
-	
-	.interest-tag {
-		display: inline-block;
-		padding: 0.5em 1em;
-		background-color: var(--color-bg-secondary);
-		color: var(--color-text);
-		border-radius: 9999px;
-		font-size: 0.875rem;
-		border: 1px solid var(--color-border);
-	}
-	
-	.contact p {
-		margin-bottom: 1.5em;
-		color: var(--color-text);
-	}
-	
-	.contact-links {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 1em;
-	}
-	
-	.contact-link {
-		display: flex;
-		align-items: center;
-		gap: 0.5em;
-		padding: 0.75em 1.25em;
-		background-color: var(--color-bg-secondary);
-		color: var(--color-text);
-		text-decoration: none;
-		border-radius: 8px;
-		border: 1px solid var(--color-border);
-		transition: all 0.2s;
-	}
-	
-	.contact-link:hover {
-		border-color: var(--color-primary);
-		color: var(--color-primary);
-		transform: translateY(-2px);
-	}
-	
-	.contact-link svg {
-		width: 20px;
-		height: 20px;
-	}
-	
-	@media (max-width: 768px) {
+	<style>
 		.about-page {
-			padding: 2em 1em;
+			width: 100%;
+			max-width: 800px;
+			margin: 0 auto;
+			padding: 3em 1em;
 		}
 		
 		.about-header {
-			padding: 1.5em;
-			margin-bottom: 2em;
+			text-align: center;
+			margin-bottom: 3em;
+			padding: 2em;
+			background: linear-gradient(135deg, var(--color-bg-secondary) 0%, var(--color-bg) 100%);
+			border-radius: 16px;
+			border: 1px solid var(--color-border);
 		}
 		
 		.about-header h1 {
+			font-size: 2.5rem;
+			margin: 0 0 0.5em 0;
+			background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
+		}
+		
+		.about-header .subtitle {
+			font-size: 1.125rem;
+			color: var(--color-text-light);
+			margin: 0;
+		}
+		
+		.about-content {
+			display: flex;
+			flex-direction: column;
+			gap: 3em;
+		}
+		
+		section h2 {
 			font-size: 1.75rem;
+			margin-bottom: 1em;
+			color: var(--color-text);
+		}
+		
+		.intro p {
+			line-height: 1.8;
+			color: var(--color-text);
+			margin-bottom: 1em;
 		}
 		
 		.skill-categories {
-			grid-template-columns: 1fr;
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+			gap: 1.5em;
+		}
+		
+		.skill-category {
+			background-color: var(--color-bg-secondary);
+			padding: 1.5em;
+			border-radius: 12px;
+			border: 1px solid var(--color-border);
+		}
+		
+		.skill-category h3 {
+			font-size: 1.125rem;
+			margin: 0 0 1em 0;
+			color: var(--color-primary);
+		}
+		
+		.skill-list {
+			list-style: none;
+			padding: 0;
+			margin: 0;
+		}
+		
+		.skill-list li {
+			padding: 0.5em 0;
+			color: var(--color-text);
+			border-bottom: 1px solid var(--color-border);
+		}
+		
+		.skill-list li:last-child {
+			border-bottom: none;
+		}
+		
+		.interests-list {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.75em;
+		}
+		
+		.interest-tag {
+			display: inline-block;
+			padding: 0.5em 1em;
+			background-color: var(--color-bg-secondary);
+			color: var(--color-text);
+			border-radius: 9999px;
+			font-size: 0.875rem;
+			border: 1px solid var(--color-border);
+		}
+		
+		.contact p {
+			margin-bottom: 1.5em;
+			color: var(--color-text);
 		}
 		
 		.contact-links {
-			flex-direction: column;
+			display: flex;
+			flex-wrap: wrap;
+			gap: 1em;
 		}
 		
 		.contact-link {
-			justify-content: center;
+			display: flex;
+			align-items: center;
+			gap: 0.5em;
+			padding: 0.75em 1.25em;
+			background-color: var(--color-bg-secondary);
+			color: var(--color-text);
+			text-decoration: none;
+			border-radius: 8px;
+			border: 1px solid var(--color-border);
+			transition: all 0.2s;
 		}
-	}
-</style>
+		
+		.contact-link:hover {
+			border-color: var(--color-primary);
+			color: var(--color-primary);
+			transform: translateY(-2px);
+		}
+		
+		.contact-link svg {
+			width: 20px;
+			height: 20px;
+		}
+		
+		@media (max-width: 768px) {
+			.about-page {
+				padding: 2em 1em;
+			}
+			
+			.about-header {
+				padding: 1.5em;
+				margin-bottom: 2em;
+			}
+			
+			.about-header h1 {
+				font-size: 1.75rem;
+			}
+			
+			.skill-categories {
+				grid-template-columns: 1fr;
+			}
+			
+			.contact-links {
+				flex-direction: column;
+			}
+			
+			.contact-link {
+				justify-content: center;
+			}
+		}
+	</style>
+</BlogLayout>
