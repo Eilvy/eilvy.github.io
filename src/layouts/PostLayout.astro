@@ -1,0 +1,132 @@
+---
+import BlogLayout from './BlogLayout.astro';
+import type { CollectionEntry } from 'astro:content';
+import FormattedDate from '../components/FormattedDate.astro';
+import Tag from '../components/Tag.astro';
+
+type Props = CollectionEntry<'blog'>['data'];
+
+const { title, description, pubDate, updatedDate, tags, categories, heroImage, author } = Astro.props;
+---
+
+<BlogLayout title={title} description={description}>
+	<article class="prose">
+		<header class="post-header">
+			{heroImage && (
+				<div class="hero-image">
+					<img src={heroImage} alt={title} />
+				</div>
+			)}
+			
+			<h1>{title}</h1>
+			
+			<div class="post-meta">
+				<div class="meta-left">
+					<FormattedDate date={pubDate} />
+					{updatedDate && (
+						<span class="updated-date">
+							· 更新于 <FormattedDate date={updatedDate} />
+						</span>
+					)}
+					{author && <span class="author">· {author}</span>}
+				</div>
+				
+				{tags && tags.length > 0 && (
+					<div class="tags">
+						{tags.map((tag) => (
+							<Tag name={tag} />
+						))}
+					</div>
+				)}
+			</div>
+		</header>
+		
+		<div class="post-content">
+			<slot />
+		</div>
+		
+		<footer class="post-footer">
+			{categories && categories.length > 0 && (
+				<div class="categories">
+					<span class="label">分类：</span>
+					{categories.map((category) => (
+						<Tag name={category} />
+					))}
+				</div>
+			)}
+		</footer>
+	</article>
+</BlogLayout>
+
+<style>
+	.post-header {
+		margin-bottom: 2rem;
+		padding-bottom: 1rem;
+		border-bottom: 1px solid var(--color-border);
+	}
+	
+	h1 {
+		font-size: 2.5rem;
+		line-height: 1.2;
+		margin-bottom: 1rem;
+		color: var(--color-text);
+	}
+	
+	.post-meta {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 1rem;
+		color: var(--color-text-light);
+		font-size: 0.875rem;
+	}
+	
+	.meta-left {
+		display: flex;
+		gap: 0.5rem;
+		align-items: center;
+	}
+	
+	.tags, .categories {
+		display: flex;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+	}
+	
+	.categories .label {
+		font-weight: 500;
+	}
+	
+	.hero-image {
+		margin-bottom: 2rem;
+	}
+	
+	.hero-image img {
+		width: 100%;
+		max-height: 400px;
+		object-fit: cover;
+		border-radius: 12px;
+	}
+	
+	.post-content {
+		margin: 2rem 0;
+	}
+	
+	.post-footer {
+		margin-top: 3rem;
+		padding-top: 1rem;
+		border-top: 1px solid var(--color-border);
+	}
+	
+	@media (max-width: 768px) {
+		h1 {
+			font-size: 1.875rem;
+		}
+		
+		.post-meta {
+			flex-direction: column;
+			align-items: flex-start;
+		}
+	}
+</style>

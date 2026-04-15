@@ -1,0 +1,44 @@
+---
+interface Props {
+	name: string;
+	href?: string;
+	active?: boolean;
+}
+
+const { name, href, active = false } = Astro.props;
+---
+
+{href ? (
+	<a href={href} class={`tag ${active ? 'active' : ''}`}>
+		{name}
+	</a>
+) : (
+	<span class="tag">{name}</span>
+)}
+
+<style>
+	.tag {
+		display: inline-block;
+		padding: 0.25em 0.75em;
+		font-size: 0.75rem;
+		font-weight: 500;
+		color: var(--color-text-light);
+		background-color: var(--color-bg-secondary);
+		border-radius: 9999px;
+		text-decoration: none;
+		transition: all 0.2s;
+		border: 1px solid var(--color-border);
+	}
+	
+	a.tag:hover {
+		color: var(--color-primary);
+		background-color: var(--color-primary-light);
+		border-color: var(--color-primary);
+	}
+	
+	.tag.active {
+		color: white;
+		background-color: var(--color-primary);
+		border-color: var(--color-primary);
+	}
+</style>
