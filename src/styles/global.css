@@ -64,6 +64,25 @@ body {
 	transition: background-color 0.3s, color 0.3s;
 }
 
+/* 可访问性 - 焦点可见样式 */
+*:focus-visible {
+	outline: 2px solid var(--color-primary);
+	outline-offset: 2px;
+	border-radius: 2px;
+}
+
+/* 按钮和链接的焦点样式 */
+button:focus-visible,
+a:focus-visible {
+	outline: 2px solid var(--color-primary);
+	outline-offset: 2px;
+}
+
+/* 深色模式下的焦点样式 */
+html.dark *:focus-visible {
+	outline-color: var(--color-primary-dark);
+}
+
 /* 排版优化 */
 .prose {
 	max-width: 720px;

@@ -1,3 +1,12 @@
 User-agent: *
 Allow: /
+
+# Sitemap location
 Sitemap: https://eilvy.github.io/sitemap-index.xml
+
+# Crawl-delay (optional)
+Crawl-delay: 1
+
+# Disallow admin or private areas (if any)
+# Disallow: /admin/
+# Disallow: /private/

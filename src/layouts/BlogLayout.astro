@@ -6,12 +6,36 @@ import Footer from '../components/Footer.astro';
 interface Props {
 	title: string;
 	description?: string;
+	image?: string;
+	canonicalURL?: string;
+	type?: 'website' | 'article';
+	publishedDate?: string;
+	author?: string;
+	tags?: string[];
 }
 
-const { title, description } = Astro.props;
+const { 
+	title, 
+	description,
+	image,
+	canonicalURL,
+	type = 'website',
+	publishedDate,
+	author,
+	tags
+} = Astro.props;
 ---
 
-<BaseLayout title={title} description={description}>
+<BaseLayout 
+	title={title} 
+	description={description}
+	image={image}
+	canonicalURL={canonicalURL}
+	type={type}
+	publishedDate={publishedDate}
+	author={author}
+	tags={tags}
+>
 	<Header />
 	<main id="main-content">
 		<slot />

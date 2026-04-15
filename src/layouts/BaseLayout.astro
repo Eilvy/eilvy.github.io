@@ -1,47 +1,49 @@
 ---
 import '../styles/global.css';
+import SEO from '../components/SEO.astro';
 
 interface Props {
 	title: string;
 	description?: string;
 	image?: string;
 	canonicalURL?: string;
+	type?: 'website' | 'article';
+	publishedDate?: string;
+	author?: string;
+	tags?: string[];
 }
 
-const { title, description = 'eilvy 的技术博客 - 分享前端开发、TypeScript、Astro 等技术文章', image, canonicalURL } = Astro.props;
-
-const siteURL = Astro.site ? new URL(Astro.site) : new URL('https://eilvy.github.io');
-const ogImage = image ? new URL(image, siteURL) : new URL('/og-image.png', siteURL);
+const { 
+	title, 
+	description, 
+	image, 
+	canonicalURL,
+	type,
+	publishedDate,
+	author,
+	tags
+} = Astro.props;
 ---
 
 <!doctype html>
 <html lang="zh-CN">
 	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		
-		<!-- SEO Meta Tags -->
-		<title>{title}</title>
-		<meta name="description" content={description} />
-		<link rel="canonical" href={canonicalURL} />
-		
-		<!-- Open Graph -->
-		<meta property="og:title" content={title} />
-		<meta property="og:description" content={description} />
-		<meta property="og:type" content="website" />
-		<meta property="og:image" content={ogImage.href} />
-		<meta property="og:url" content={Astro.url.href} />
-		
-		<!-- Twitter Card -->
-		<meta name="twitter:card" content="summary_large_image" />
-		<meta name="twitter:title" content={title} />
-		<meta name="twitter:description" content={description} />
-		<meta name="twitter:image" content={ogImage.href} />
 		
 		<!-- Preconnect to fonts -->
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		
+		<SEO 
+			title={title} 
+			description={description} 
+			image={image} 
+			canonicalURL={canonicalURL}
+			type={type}
+			publishedDate={publishedDate}
+			author={author}
+			tags={tags}
+		/>
 	</head>
 	<body>
 		<a href="#main-content" class="skip-link">跳转到主要内容</a>
