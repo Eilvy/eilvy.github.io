@@ -18,7 +18,10 @@ const posts = (await getCollection('blog')).sort(
 		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
 		<style>
 			main {
-				width: 960px;
+				width: 100%;
+				max-width: 960px;
+				margin: 0 auto;
+				padding: 2em 1em;
 			}
 			ul {
 				display: flex;
@@ -38,10 +41,14 @@ const posts = (await getCollection('blog')).sort(
 			ul li:first-child {
 				width: 100%;
 				margin-bottom: 1rem;
+			}
+			ul li:first-child .card-content {
 				text-align: center;
+				padding: 2em;
 			}
 			ul li:first-child img {
 				width: 100%;
+				margin-bottom: 1rem;
 			}
 			ul li:first-child .title {
 				font-size: 2.369rem;
@@ -52,22 +59,55 @@ const posts = (await getCollection('blog')).sort(
 			}
 			ul li a {
 				display: block;
+				text-decoration: none;
 			}
+			
+			.card-content {
+				padding: 1em;
+			}
+			
 			.title {
-				margin: 0;
-				color: rgb(var(--black));
-				line-height: 1;
+				margin: 0 0 0.5em 0;
+				color: var(--color-text);
+				line-height: 1.3;
+				font-size: 1.25rem;
+				transition: color 0.2s;
 			}
+			
 			.date {
 				margin: 0;
-				color: rgb(var(--gray));
+				color: var(--color-text-light);
+				font-size: 0.875rem;
 			}
-			ul li a:hover h4,
-			ul li a:hover .date {
-				color: rgb(var(--accent));
+			
+			ul li {
+				background-color: var(--color-bg);
+				border: 1px solid var(--color-border);
+				border-radius: 12px;
+				overflow: hidden;
+				transition: all 0.3s;
 			}
-			ul a:hover img {
-				box-shadow: var(--box-shadow);
+			
+			ul li:hover {
+				border-color: var(--color-primary);
+				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+				transform: translateY(-2px);
+			}
+			
+			ul li:hover .title {
+				color: var(--color-primary);
+			}
+			
+			ul li img {
+				width: 100%;
+				height: 200px;
+				object-fit: cover;
+			}
+			
+			@media (max-width: 720px) {
+				ul li img {
+					height: 180px;
+				}
 			}
 			@media (max-width: 720px) {
 				ul {
@@ -98,10 +138,12 @@ const posts = (await getCollection('blog')).sort(
 									{post.data.heroImage && (
 										<Image width={720} height={360} src={post.data.heroImage} alt="" />
 									)}
-									<h4 class="title">{post.data.title}</h4>
-									<p class="date">
-										<FormattedDate date={post.data.pubDate} />
-									</p>
+									<div class="card-content">
+										<h4 class="title">{post.data.title}</h4>
+										<p class="date">
+											<FormattedDate date={post.data.pubDate} />
+										</p>
+									</div>
 								</a>
 							</li>
 						))
