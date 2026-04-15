@@ -1,156 +1,101 @@
 ---
-import { Image } from 'astro:assets';
+import BlogLayout from '../../layouts/BlogLayout.astro';
+import PostCard from '../../components/PostCard.astro';
 import { getCollection } from 'astro:content';
-import BaseHead from '../../components/BaseHead.astro';
-import Footer from '../../components/Footer.astro';
-import FormattedDate from '../../components/FormattedDate.astro';
-import Header from '../../components/Header.astro';
-import { SITE_DESCRIPTION, SITE_TITLE } from '../../consts';
+import { SITE_TITLE } from '../../consts';
 
-const posts = (await getCollection('blog')).sort(
-	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
-);
+const posts = (await getCollection('blog'))
+	.filter((post) => !post.data.draft)
+	.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 ---
 
-<!doctype html>
-<html lang="en">
-	<head>
-		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
-		<style>
-			main {
-				width: 100%;
-				max-width: 960px;
-				margin: 0 auto;
-				padding: 2em 1em;
-			}
-			ul {
-				display: flex;
-				flex-wrap: wrap;
-				gap: 2rem;
-				list-style-type: none;
-				margin: 0;
-				padding: 0;
-			}
-			ul li {
-				width: calc(50% - 1rem);
-			}
-			ul li * {
-				text-decoration: none;
-				transition: 0.2s ease;
-			}
-			ul li:first-child {
-				width: 100%;
-				margin-bottom: 1rem;
-			}
-			ul li:first-child .card-content {
-				text-align: center;
-				padding: 2em;
-			}
-			ul li:first-child img {
-				width: 100%;
-				margin-bottom: 1rem;
-			}
-			ul li:first-child .title {
-				font-size: 2.369rem;
-			}
-			ul li img {
-				margin-bottom: 0.5rem;
-				border-radius: 12px;
-			}
-			ul li a {
-				display: block;
-				text-decoration: none;
-			}
-			
-			.card-content {
-				padding: 1em;
-			}
-			
-			.title {
-				margin: 0 0 0.5em 0;
-				color: var(--color-text);
-				line-height: 1.3;
-				font-size: 1.25rem;
-				transition: color 0.2s;
-			}
-			
-			.date {
-				margin: 0;
-				color: var(--color-text-light);
-				font-size: 0.875rem;
-			}
-			
-			ul li {
-				background-color: var(--color-bg);
-				border: 1px solid var(--color-border);
-				border-radius: 12px;
-				overflow: hidden;
-				transition: all 0.3s;
-			}
-			
-			ul li:hover {
-				border-color: var(--color-primary);
-				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-				transform: translateY(-2px);
-			}
-			
-			ul li:hover .title {
-				color: var(--color-primary);
-			}
-			
-			ul li img {
-				width: 100%;
-				height: 200px;
-				object-fit: cover;
-			}
-			
-			@media (max-width: 720px) {
-				ul li img {
-					height: 180px;
-				}
-			}
-			@media (max-width: 720px) {
-				ul {
-					gap: 0.5em;
-				}
-				ul li {
-					width: 100%;
-					text-align: center;
-				}
-				ul li:first-child {
-					margin-bottom: 0;
-				}
-				ul li:first-child .title {
-					font-size: 1.563em;
-				}
-			}
-		</style>
-	</head>
-	<body>
-		<Header />
-		<main>
-			<section>
-				<ul>
-					{
-						posts.map((post) => (
-							<li>
-								<a href={`/blog/${post.id}/`}>
-									{post.data.heroImage && (
-										<Image width={720} height={360} src={post.data.heroImage} alt="" />
-									)}
-									<div class="card-content">
-										<h4 class="title">{post.data.title}</h4>
-										<p class="date">
-											<FormattedDate date={post.data.pubDate} />
-										</p>
-									</div>
-								</a>
-							</li>
-						))
-					}
-				</ul>
-			</section>
-		</main>
-		<Footer />
-	</body>
-</html>
+<BlogLayout title={`博客 - ${SITE_TITLE}`} description="所有技术文章列表">
+	<div class="blog-page">
+		<header class="page-header">
+			<h1>所有文章</h1>
+			<p class="description">
+				已发布 <span class="count">{posts.length}</span> 篇文章
+			</p>
+		</header>
+		
+		<div class="posts-list">
+			{posts.map((post) => (
+				<PostCard post={post} />
+			))}
+		</div>
+		
+		{posts.length === 0 && (
+			<div class="empty-state">
+				<p>还没有文章，敬请期待！</p>
+			</div>
+		)}
+	</div>
+</BlogLayout>
+
+<style>
+	.blog-page {
+		width: 100%;
+		max-width: 1200px;
+		margin: 0 auto;
+		padding: 2em 1em;
+	}
+	
+	.page-header {
+		text-align: center;
+		margin-bottom: 3em;
+		padding: 2em;
+		background: linear-gradient(135deg, var(--color-bg-secondary) 0%, var(--color-bg) 100%);
+		border-radius: 16px;
+		border: 1px solid var(--color-border);
+	}
+	
+	.page-header h1 {
+		font-size: 2.5rem;
+		margin: 0 0 0.5em 0;
+		color: var(--color-text);
+	}
+	
+	.page-header .description {
+		font-size: 1.125rem;
+		color: var(--color-text-light);
+		margin: 0;
+	}
+	
+	.page-header .count {
+		color: var(--color-primary);
+		font-weight: 600;
+	}
+	
+	.posts-list {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+		gap: 2em;
+	}
+	
+	.empty-state {
+		text-align: center;
+		padding: 4em 2em;
+		color: var(--color-text-light);
+		font-size: 1.25rem;
+	}
+	
+	@media (max-width: 768px) {
+		.blog-page {
+			padding: 1em;
+		}
+		
+		.page-header {
+			padding: 1.5em;
+			margin-bottom: 2em;
+		}
+		
+		.page-header h1 {
+			font-size: 1.75rem;
+		}
+		
+		.posts-list {
+			grid-template-columns: 1fr;
+			gap: 1.5em;
+		}
+	}
+</style>

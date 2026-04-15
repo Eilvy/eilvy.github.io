@@ -10,53 +10,93 @@ const { title, description, pubDate, updatedDate, tags, categories, heroImage, a
 ---
 
 <BlogLayout title={title} description={description}>
-	<article class="prose">
-		<header class="post-header">
-			{heroImage && (
-				<div class="hero-image">
-					<img src={heroImage} alt={title} />
-				</div>
-			)}
-			
-			<h1>{title}</h1>
-			
-			<div class="post-meta">
-				<div class="meta-left">
-					<FormattedDate date={pubDate} />
-					{updatedDate && (
-						<span class="updated-date">
-							· 更新于 <FormattedDate date={updatedDate} />
-						</span>
+	<div class="post-layout">
+		<aside class="toc-sidebar">
+			<slot name="toc" />
+		</aside>
+		
+		<main class="article-main">
+			<article class="prose">
+				<header class="post-header">
+					{heroImage && (
+						<div class="hero-image">
+							<img src={heroImage} alt={title} />
+						</div>
 					)}
-					{author && <span class="author">· {author}</span>}
+					
+					<h1>{title}</h1>
+					
+					<div class="post-meta">
+						<div class="meta-left">
+							<FormattedDate date={pubDate} />
+							{updatedDate && (
+								<span class="updated-date">
+									· 更新于 <FormattedDate date={updatedDate} />
+								</span>
+							)}
+							{author && <span class="author">· {author}</span>}
+						</div>
+						
+						{tags && tags.length > 0 && (
+							<div class="tags">
+								{tags.map((tag) => (
+									<Tag name={tag} />
+								))}
+							</div>
+						)}
+					</div>
+				</header>
+				
+				<div class="post-content">
+					<slot />
 				</div>
 				
-				{tags && tags.length > 0 && (
-					<div class="tags">
-						{tags.map((tag) => (
-							<Tag name={tag} />
-						))}
-					</div>
-				)}
-			</div>
-		</header>
-		
-		<div class="post-content">
-			<slot />
-		</div>
-		
-		<footer class="post-footer">
-			{categories && categories.length > 0 && (
-				<div class="categories">
-					<span class="label">分类：</span>
-					{categories.map((category) => (
-						<Tag name={category} />
-					))}
-				</div>
-			)}
-		</footer>
-	</article>
+				<footer class="post-footer">
+					{categories && categories.length > 0 && (
+						<div class="categories">
+							<span class="label">分类：</span>
+							{categories.map((category) => (
+								<Tag name={category} />
+							))}
+						</div>
+					)}
+				</footer>
+			</article>
+		</main>
+	</div>
 </BlogLayout>
+
+<style>
+	.post-layout {
+		display: grid;
+		grid-template-columns: 1fr 280px;
+		gap: 3em;
+		max-width: 1200px;
+		margin: 0 auto;
+		padding: 2em 1em;
+	}
+	
+	.toc-sidebar {
+		position: sticky;
+		top: 100px;
+		height: fit-content;
+	}
+	
+	.article-main {
+		min-width: 0;
+	}
+	
+	@media (max-width: 1024px) {
+		.post-layout {
+			grid-template-columns: 1fr;
+			max-width: 720px;
+		}
+		
+		.toc-sidebar {
+			display: none;
+		}
+	}
+</style>
 
 <style>
 	.post-header {

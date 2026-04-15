@@ -1,140 +1,189 @@
 ---
-import BaseHead from '../components/BaseHead.astro';
-import Footer from '../components/Footer.astro';
-import Header from '../components/Header.astro';
-import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+import BlogLayout from '../layouts/BlogLayout.astro';
+import PostCard from '../components/PostCard.astro';
+import Tag from '../components/Tag.astro';
+import { getCollection } from 'astro:content';
+import { SITE_TITLE, SITE_DESCRIPTION, POSTS_PER_PAGE } from '../consts';
+
+const posts = (await getCollection('blog'))
+	.filter((post) => !post.data.draft)
+	.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+	.slice(0, POSTS_PER_PAGE);
+
+// 获取所有标签
+const allTags = new Set<string>();
+posts.forEach((post) => {
+	if (post.data.tags) {
+		post.data.tags.forEach((tag) => allTags.add(tag));
+	}
+});
 ---
 
-<!doctype html>
-<html lang="en">
-	<head>
-		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
-	</head>
-	<body>
-		<Header />
-		<main class="home">
-			<div class="hero">
-				<h1>🧑‍ Hello, Astronaut!</h1>
-				<p class="lead">
-					Welcome to the official <a href="https://astro.build/">Astro</a> blog starter template.
-				</p>
+<BlogLayout title={SITE_TITLE} description={SITE_DESCRIPTION}>
+	<div class="home">
+		<section class="hero">
+			<h1>eilvy 的技术博客</h1>
+			<p class="lead">
+				分享前端开发、TypeScript、Astro 等技术文章
+			</p>
+		</section>
+		
+		<section class="latest-posts">
+			<div class="section-header">
+				<h2>最新文章</h2>
+				<a href="/blog" class="view-all">
+					查看全部
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M5 12h14M12 5l7 7-7 7"/>
+					</svg>
+				</a>
 			</div>
 			
-			<div class="content">
-				<p>
-					This template serves as a lightweight, minimally-styled starting point for anyone looking to build a personal
-					website, blog, or portfolio with Astro.
-				</p>
-				<p>
-					This template comes with a few integrations already configured in your
-					<code>astro.config.mjs</code> file. You can customize your setup with
-					<a href="https://astro.build/integrations">Astro Integrations</a> to add tools like Tailwind,
-					React, or Vue to your project.
-				</p>
-				<p>Here are a few ideas on how to get started with the template:</p>
-				<ul>
-					<li>Edit this page in <code>src/pages/index.astro</code></li>
-					<li>Edit the site header items in <code>src/components/Header.astro</code></li>
-					<li>Add your name to the footer in <code>src/components/Footer.astro</code></li>
-					<li>Check out the included blog posts in <code>src/content/blog/</code></li>
-					<li>Customize the blog post page layout in <code>src/layouts/BlogPost.astro</code></li>
-				</ul>
-				<p>
-					Have fun! If you get stuck, remember to
-					<a href="https://docs.astro.build/">read the docs</a>
-					or <a href="https://astro.build/chat">join us on Discord</a> to ask questions.
-				</p>
-				<p>
-					Looking for a more personalized blog template? Check out
-					<a href="https://github.com/Charca/astro-blog-template">astro-blog-template</a>
-					by <a href="https://twitter.com/Charca">Maxi Ferreira</a>.
-				</p>
+			<div class="posts-grid">
+				{posts.map((post) => (
+					<PostCard post={post} />
+				))}
 			</div>
-		</main>
-		<Footer />
-	</body>
-	<style>
+		</section>
+		
+		{allTags.size > 0 && (
+			<section class="tags-section">
+				<h2>热门标签</h2>
+				<div class="tags-cloud">
+					{Array.from(allTags).slice(0, 10).map((tag) => (
+						<Tag name={tag} href={`/tags/${tag.toLowerCase()}/`} />
+					))}
+				</div>
+			</section>
+		)}
+	</div>
+</BlogLayout>
+
+<style>
+	.home {
+		width: 100%;
+		max-width: 1200px;
+		margin: 0 auto;
+		padding: 2em 1em;
+	}
+	
+	.hero {
+		text-align: center;
+		margin-bottom: 4em;
+		padding: 3em 2em;
+		background: linear-gradient(135deg, var(--color-bg-secondary) 0%, var(--color-bg) 100%);
+		border-radius: 16px;
+		border: 1px solid var(--color-border);
+	}
+	
+	.hero h1 {
+		font-size: 3rem;
+		margin-bottom: 0.5em;
+		background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+		line-height: 1.2;
+	}
+	
+	.hero .lead {
+		font-size: 1.25rem;
+		color: var(--color-text-light);
+		max-width: 600px;
+		margin: 0 auto;
+		line-height: 1.6;
+	}
+	
+	.section-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 2em;
+		padding-bottom: 1em;
+		border-bottom: 2px solid var(--color-border);
+	}
+	
+	.section-header h2 {
+		font-size: 1.75rem;
+		margin: 0;
+		color: var(--color-text);
+	}
+	
+	.view-all {
+		display: flex;
+		align-items: center;
+		gap: 0.5em;
+		color: var(--color-primary);
+		text-decoration: none;
+		font-weight: 500;
+		font-size: 0.95rem;
+		transition: all 0.2s;
+	}
+	
+	.view-all:hover {
+		color: var(--color-primary-dark);
+	}
+	
+	.view-all svg {
+		width: 18px;
+		height: 18px;
+		transition: transform 0.2s;
+	}
+	
+	.view-all:hover svg {
+		transform: translateX(4px);
+	}
+	
+	.posts-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+		gap: 2em;
+		margin-bottom: 4em;
+	}
+	
+	.tags-section {
+		margin-top: 4em;
+	}
+	
+	.tags-section h2 {
+		font-size: 1.75rem;
+		margin-bottom: 1.5em;
+		color: var(--color-text);
+	}
+	
+	.tags-cloud {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.75em;
+	}
+	
+	@media (max-width: 768px) {
 		.home {
-			width: 100%;
-			max-width: 720px;
-			margin: 0 auto;
-			padding: 3em 1em;
+			padding: 1em;
 		}
 		
 		.hero {
-			text-align: center;
+			padding: 2em 1em;
 			margin-bottom: 3em;
-			padding: 2em;
-			background: linear-gradient(135deg, var(--color-bg-secondary) 0%, var(--color-bg) 100%);
-			border-radius: 16px;
-			border: 1px solid var(--color-border);
 		}
 		
 		.hero h1 {
-			font-size: 2.5rem;
-			margin-bottom: 0.5em;
-			background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-			-webkit-background-clip: text;
-			-webkit-text-fill-color: transparent;
-			background-clip: text;
+			font-size: 2rem;
 		}
 		
 		.hero .lead {
-			font-size: 1.25rem;
-			color: var(--color-text-light);
-			max-width: 600px;
-			margin: 0 auto;
+			font-size: 1rem;
 		}
 		
-		.content p {
-			margin-bottom: 1.5em;
-			line-height: 1.8;
+		.posts-grid {
+			grid-template-columns: 1fr;
+			gap: 1.5em;
 		}
 		
-		.content ul {
-			margin: 1.5em 0;
-			padding-left: 1.5em;
+		.section-header {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 1em;
 		}
-		
-		.content li {
-			margin-bottom: 0.5em;
-		}
-		
-		.content a {
-			color: var(--color-primary);
-			text-decoration: underline;
-			text-underline-offset: 2px;
-		}
-		
-		.content a:hover {
-			color: var(--color-primary-dark);
-		}
-		
-		.content code {
-			background-color: var(--color-bg-secondary);
-			padding: 0.2em 0.4em;
-			border-radius: 4px;
-			font-family: var(--font-mono);
-			font-size: 0.9em;
-		}
-		
-		@media (max-width: 768px) {
-			.home {
-				padding: 2em 1em;
-			}
-			
-			.hero {
-				padding: 1.5em;
-			}
-			
-			.hero h1 {
-				font-size: 1.75rem;
-			}
-			
-			.hero .lead {
-				font-size: 1rem;
-			}
-		}
-	</style>
-</html>
-</html>
+	}
+</style>

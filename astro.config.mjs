@@ -12,8 +12,16 @@ export default defineConfig({
 	markdown: {
 		shikiConfig: {
 			theme: 'one-dark-pro',
-			wrap: true
-		}
+			wrap: true,
+			transformers: [
+				{
+					pre(node) {
+						// 添加行号属性
+						node.properties['data-line-numbers'] = 'true';
+					},
+				},
+			],
+		},
 	},
 	fonts: [
 		{
