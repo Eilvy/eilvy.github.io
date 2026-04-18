@@ -19,10 +19,6 @@ const { title, description, pubDate, updatedDate, tags, categories, heroImage, a
 	tags={tags}
 >
 	<div class="post-layout">
-		<aside class="toc-sidebar">
-			<slot name="toc" />
-		</aside>
-		
 		<main class="article-main">
 			<article class="prose">
 				<header class="post-header">
@@ -47,7 +43,7 @@ const { title, description, pubDate, updatedDate, tags, categories, heroImage, a
 						
 						{tags && tags.length > 0 && (
 							<div class="tags">
-								{tags.map((tag) => (
+								{tags.map((tag: string) => (
 									<Tag name={tag} />
 								))}
 							</div>
@@ -63,7 +59,7 @@ const { title, description, pubDate, updatedDate, tags, categories, heroImage, a
 					{categories && categories.length > 0 && (
 						<div class="categories">
 							<span class="label">分类：</span>
-							{categories.map((category) => (
+							{categories.map((category: string) => (
 								<Tag name={category} />
 							))}
 						</div>
@@ -71,6 +67,10 @@ const { title, description, pubDate, updatedDate, tags, categories, heroImage, a
 				</footer>
 			</article>
 		</main>
+		
+		<aside class="toc-sidebar">
+			<slot name="toc" />
+		</aside>
 	</div>
 </BlogLayout>
 

@@ -1,12 +1,14 @@
 ---
+import { SITE_TITLE } from '../consts'
+import { SITE_DESCRIPTION } from '../consts'
 const today = new Date();
 ---
 
 <footer>
 	<div class="footer-content">
 		<div class="footer-section">
-			<h3>eilvy 的技术博客</h3>
-			<p>分享前端开发、TypeScript、Astro 等技术文章</p>
+			<h3>{SITE_TITLE}</h3>
+			<p>{ SITE_DESCRIPTION }</p>
 		</div>
 		
 		<div class="footer-section">

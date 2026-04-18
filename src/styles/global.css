@@ -88,6 +88,7 @@ html.dark *:focus-visible {
 	max-width: 720px;
 	margin: 0 auto;
 	padding: 2em 1em;
+	color: var(--color-text);
 }
 
 .prose h1,
@@ -119,6 +120,12 @@ html.dark *:focus-visible {
 .prose p {
 	margin-bottom: 1.5em;
 	line-height: 1.8;
+	color: var(--color-text);
+}
+
+.prose strong {
+	color: var(--color-text);
+	font-weight: 600;
 }
 
 .prose a {
@@ -209,7 +216,7 @@ html.dark *:focus-visible {
 	padding-left: 1em;
 	margin: 1.5em 0;
 	font-style: italic;
-	color: var(--color-text-light);
+	color: var(--color-text);
 }
 
 /* 列表 */
@@ -217,10 +224,12 @@ html.dark *:focus-visible {
 .prose ol {
 	margin: 1em 0;
 	padding-left: 1.5em;
+	color: var(--color-text);
 }
 
 .prose li {
 	margin-bottom: 0.5em;
+	color: var(--color-text);
 }
 
 /* 图片 */
@@ -236,6 +245,7 @@ html.dark *:focus-visible {
 	width: 100%;
 	margin: 1.5em 0;
 	border-collapse: collapse;
+	color: var(--color-text);
 }
 
 .prose th,
@@ -243,11 +253,13 @@ html.dark *:focus-visible {
 	padding: 0.75em;
 	border: 1px solid var(--color-border);
 	text-align: left;
+	color: var(--color-text);
 }
 
 .prose th {
 	background-color: var(--color-bg-secondary);
 	font-weight: 600;
+	color: var(--color-text);
 }
 
 /* 水平线 */

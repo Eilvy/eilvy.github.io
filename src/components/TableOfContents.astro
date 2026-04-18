@@ -66,7 +66,7 @@ const tocHeadings = headings.filter(
 	}
 	
 	.toc-item a {
-		color: var(--color-text-light);
+		color: var(--color-text);
 		text-decoration: none;
 		line-height: 1.5;
 		transition: color 0.2s;
@@ -121,9 +121,9 @@ const tocHeadings = headings.filter(
 			entries.forEach((entry) => {
 				if (entry.isIntersecting) {
 					const id = entry.target.id;
-					document.querySelectorAll('.toc-item').forEach((item) => {
+					document.querySelectorAll('.toc-item').forEach((item: Element) => {
 						item.classList.remove('active');
-						if (item.dataset.heading === id) {
+						if ((item as HTMLElement).dataset?.heading === id) {
 							item.classList.add('active');
 						}
 					});

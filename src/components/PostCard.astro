@@ -10,11 +10,11 @@ interface Props {
 }
 
 const { post } = Astro.props;
-const { slug, data } = post;
+const { id, data } = post;
 ---
 
 <article class="post-card">
-	<a href={`/blog/${slug}/`} class="post-card-link">
+	<a href={`/blog/${id}/`} class="post-card-link">
 		<header>
 			<h3 class="post-title">{data.title}</h3>
 			<div class="post-meta">

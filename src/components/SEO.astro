@@ -1,4 +1,6 @@
 ---
+import { SITE_TITLE } from '../consts'
+import { SITE_DESCRIPTION } from '../consts'
 interface Props {
 	title: string;
 	description?: string;
@@ -12,12 +14,12 @@ interface Props {
 
 const {
 	title,
-	description = 'eilvy 的技术博客 - 分享前端开发、TypeScript、Astro 等技术文章',
+	description = { SITE_DESCRIPTION },
 	image,
 	canonicalURL,
 	type = 'website',
 	publishedDate,
-	author = 'eilvy',
+	author = { SITE_TITLE },
 	tags = []
 } = Astro.props;
 
