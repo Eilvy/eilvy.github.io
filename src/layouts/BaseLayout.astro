@@ -29,6 +29,30 @@ const {
 <!doctype html>
 <html lang="zh-CN">
 	<head>
+		<!-- 立即执行的主题检测脚本，防止 FOUC - 必须在 CSS 加载前执行 -->
+		<script>
+			// 应用主题并标记为已加载
+			function applyTheme() {
+				const savedTheme = localStorage.getItem('theme');
+				const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+				
+				if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+					document.documentElement.classList.add('dark');
+				}
+				
+				// 添加 class 表示主题已加载，移除 visibility: hidden
+				document.documentElement.classList.add('theme-loaded');
+			}
+			
+			// 页面加载时立即执行
+			applyTheme();
+			
+			// 监听 View Transition 导航，确保主题不丢失
+			document.addEventListener('astro:after-swap', function() {
+				applyTheme();
+			});
+		</script>
+		
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		
 		<!-- Preconnect to fonts -->
@@ -53,6 +77,11 @@ const {
 </html>
 
 <style is:global>
+	/* 防止 FOUC - 主题加载前隐藏页面 */
+	html:not(.theme-loaded) {
+		visibility: hidden;
+	}
+	
 	/* Skip link for accessibility */
 	.skip-link {
 		position: absolute;

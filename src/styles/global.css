@@ -61,7 +61,6 @@ body {
 	background-color: var(--color-bg);
 	color: var(--color-text);
 	line-height: 1.6;
-	transition: background-color 0.3s, color 0.3s;
 }
 
 /* 可访问性 - 焦点可见样式 */
