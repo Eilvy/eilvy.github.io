@@ -1,10 +1,12 @@
 ---
 import { SITE_TITLE } from '../consts'
 import { SITE_DESCRIPTION } from '../consts'
+import type { ImageMetadata } from 'astro';
+
 interface Props {
 	title: string;
 	description?: string;
-	image?: string;
+	image?: ImageMetadata | string;
 	canonicalURL?: string;
 	type?: 'website' | 'article';
 	publishedDate?: string;
@@ -14,17 +16,42 @@ interface Props {
 
 const {
 	title,
-	description = { SITE_DESCRIPTION },
+	description = SITE_DESCRIPTION,
 	image,
 	canonicalURL,
 	type = 'website',
 	publishedDate,
-	author = { SITE_TITLE },
+	author = SITE_TITLE,
 	tags = []
 } = Astro.props;
 
 const siteURL = Astro.site ? new URL(Astro.site) : new URL('https://eilvy.github.io');
-const ogImage = image ? new URL(image, siteURL) : new URL('/og-image.png', siteURL);
+
+// 处理图片路径 - 支持 ImageMetadata 和字符串路径
+const getOGImageURL = (img?: ImageMetadata | string) => {
+	if (!img) return new URL('/og-image.png', siteURL);
+	
+	// 如果是 ImageMetadata 对象，使用 src 属性
+	if (typeof img === 'object' && 'src' in img) {
+		return new URL(img.src, siteURL);
+	}
+	
+	// 如果是完整 URL，直接返回
+	if (img.startsWith('http://') || img.startsWith('https://')) {
+		return new URL(img);
+	}
+	
+	// 如果是绝对路径（静态资源），拼接到 siteURL
+	if (img.startsWith('/')) {
+		const relativePath = img.substring(1);
+		return new URL(relativePath, siteURL);
+	}
+	
+	// 其他情况使用默认图片
+	return new URL('/og-image.png', siteURL);
+};
+
+const ogImage = getOGImageURL(image);
 const canonical = canonicalURL || Astro.url.href;
 
 // JSON-LD 结构化数据

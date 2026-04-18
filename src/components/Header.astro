@@ -65,19 +65,12 @@ import HeaderLink from './HeaderLink.astro';
 	const themeToggle = document.querySelector('[data-theme-toggle]');
 	const html = document.documentElement;
 	
-	console.log('Theme toggle found:', themeToggle);
-	console.log('HTML element:', html);
-	
 	// 检查本地存储的主题偏好
 	const savedTheme = localStorage.getItem('theme');
 	const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 	
-	console.log('Saved theme:', savedTheme);
-	console.log('Prefers dark:', prefersDark);
-	
 	if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
 		html.classList.add('dark');
-		console.log('Applied dark theme');
 	}
 	
 	if (themeToggle) {
@@ -85,10 +78,7 @@ import HeaderLink from './HeaderLink.astro';
 			html.classList.toggle('dark');
 			const newTheme = html.classList.contains('dark') ? 'dark' : 'light';
 			localStorage.setItem('theme', newTheme);
-			console.log('Theme changed to:', newTheme);
 		});
-	} else {
-		console.error('Theme toggle button not found!');
 	}
 	
 	// 移动端菜单

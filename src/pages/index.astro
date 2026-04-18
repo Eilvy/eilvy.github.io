@@ -5,16 +5,19 @@ import Tag from '../components/Tag.astro';
 import { getCollection } from 'astro:content';
 import { SITE_TITLE, SITE_DESCRIPTION, POSTS_PER_PAGE } from '../consts';
 
-const posts = (await getCollection('blog'))
-	.filter((post) => !post.data.draft)
+const posts = await getCollection('blog');
+
+// 过滤草稿并排序
+const publishedPosts = posts
+	.filter((post) => !(post.data as any).draft)
 	.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
 	.slice(0, POSTS_PER_PAGE);
 
 // 获取所有标签
 const allTags = new Set<string>();
-posts.forEach((post) => {
-	if (post.data.tags) {
-		post.data.tags.forEach((tag) => allTags.add(tag));
+publishedPosts.forEach((post) => {
+	if ((post.data as any).tags) {
+		(post.data as any).tags.forEach((tag: string) => allTags.add(tag));
 	}
 });
 ---

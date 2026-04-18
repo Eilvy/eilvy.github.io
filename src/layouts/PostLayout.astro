@@ -1,18 +1,78 @@
 ---
 import BlogLayout from './BlogLayout.astro';
 import type { CollectionEntry } from 'astro:content';
+import type { ImageMetadata } from 'astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import Tag from '../components/Tag.astro';
 
-type Props = CollectionEntry<'blog'>['data'];
+interface BlogPostData {
+	title: string;
+	description: string;
+	pubDate: Date;
+	updatedDate?: Date;
+	tags: string[];
+	categories: string[];
+	heroImage?: string | ImageMetadata;
+	author?: string;
+	draft?: boolean;
+}
 
-const { title, description, pubDate, updatedDate, tags, categories, heroImage, author } = Astro.props;
+const { title, description, pubDate, updatedDate, tags, categories, heroImage, author } = Astro.props as BlogPostData;
+
+// heroImage 可能已经是 ImageMetadata 对象（由 Astro 内容集合自动处理）
+// 或者是字符串路径（需要手动处理）
+const getHeroImage = async (path?: string | ImageMetadata): Promise<ImageMetadata | undefined> => {
+	if (!path) return undefined;
+	
+	// 如果已经是 ImageMetadata 对象，直接返回
+	if (typeof path === 'object' && 'src' in path) {
+		return path as ImageMetadata;
+	}
+	
+	// 如果是字符串，说明 Astro 没有自动处理，需要手动导入
+	if (typeof path === 'string') {
+		try {
+			// 处理相对路径：从 src/content/blog/ 转换为相对于 PostLayout 的路径
+			let importPath: string;
+			
+			if (path.startsWith('../../assets/')) {
+				// 从 content/blog/ 到 assets/ 的相对路径
+				importPath = path;
+			} else if (path.startsWith('../assets/')) {
+				// 调整路径
+				importPath = `.${path}`;
+			} else if (path.startsWith('/assets/')) {
+				// 绝对路径转换为相对路径
+				importPath = `../${path.substring(1)}`;
+			} else if (path.includes('assets/')) {
+				const match = path.match(/assets\/(.*)$/);
+				if (match) {
+					importPath = `../assets/${match[1]}`;
+				} else {
+					return undefined;
+				}
+			} else {
+				return undefined;
+			}
+			
+			const imageModule = await import(importPath);
+			return imageModule.default as ImageMetadata;
+		} catch (error) {
+			console.warn(`Failed to load image: ${path}`, error);
+			return undefined;
+		}
+	}
+	
+	return undefined;
+};
+
+const heroImageMetadata = await getHeroImage(heroImage);
 ---
 
 <BlogLayout 
 	title={title} 
 	description={description}
-	image={heroImage}
+	image={heroImageMetadata}
 	type="article"
 	publishedDate={pubDate?.toISOString()}
 	author={author}
@@ -22,9 +82,9 @@ const { title, description, pubDate, updatedDate, tags, categories, heroImage, a
 		<main class="article-main">
 			<article class="prose">
 				<header class="post-header">
-					{heroImage && (
+					{heroImageMetadata && (
 						<div class="hero-image">
-							<img src={heroImage} alt={title} />
+							<img src={heroImageMetadata.src} alt={title} />
 						</div>
 					)}
 					
