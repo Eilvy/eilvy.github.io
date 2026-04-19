@@ -3,7 +3,19 @@ import type { CollectionEntry } from 'astro:content';
 import FormattedDate from './FormattedDate.astro';
 import Tag from './Tag.astro';
 
-type Post = CollectionEntry<'blog'>;
+interface BlogPostData {
+	title: string;
+	description: string;
+	pubDate: Date;
+	updatedDate?: Date;
+	tags: string[];
+	categories: string[];
+	heroImage?: string;
+	author?: string;
+	draft?: boolean;
+}
+
+type Post = CollectionEntry<'blog'> & { data: BlogPostData };
 
 interface Props {
 	post: Post;
