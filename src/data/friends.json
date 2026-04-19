@@ -11,7 +11,18 @@
       "url": "https://hch1212.github.io/",
       "icon": "blog",
       "description": "giftia"
+    },
+    {
+      "name": "SnowyKami",
+      "url": "https://www.sfkm.me/",
+      "icon": "blog",
+      "description": "SnowyKami"
+    },
+    {
+      "name": "moonic",
+      "url": "http://www.moonic.site/",
+      "icon": "blog",
+      "description": "moonic"
     }
-
   ]
 }
