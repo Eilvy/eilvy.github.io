@@ -1,0 +1,17 @@
+{
+  "friends": [
+    {
+      "name": "GitHub",
+      "url": "https://github.com/eilvy",
+      "icon": "github",
+      "description": "代码仓库"
+    },
+    {
+      "name": "giftia",
+      "url": "https://hch1212.github.io/",
+      "icon": "blog",
+      "description": "giftia"
+    }
+
+  ]
+}
