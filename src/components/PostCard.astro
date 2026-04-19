@@ -32,7 +32,7 @@ const { id, data } = post;
 		<header>
 			<h3 class="post-title">{data.title}</h3>
 			<div class="post-meta">
-				<FormattedDate date={data.pubDate} />
+				<FormattedDate date={data.pubDate} compact />
 				{data.tags && data.tags.length > 0 && (
 					<div class="tags">
 						{data.tags.slice(0, 3).map((tag) => (
@@ -90,6 +90,11 @@ const { id, data } = post;
 		margin-bottom: 1em;
 		font-size: 0.875rem;
 		color: var(--color-text-light);
+		flex-wrap: wrap;
+	}
+	
+	.post-meta time {
+		white-space: nowrap;
 	}
 	
 	.tags {

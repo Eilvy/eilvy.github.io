@@ -92,10 +92,10 @@ const heroImageMetadata = await getHeroImage(heroImage);
 					
 					<div class="post-meta">
 						<div class="meta-left">
-							<FormattedDate date={pubDate} />
+							<FormattedDate date={pubDate} compact />
 							{updatedDate && (
 								<span class="updated-date">
-									· 更新于 <FormattedDate date={updatedDate} />
+									· 更新于 <FormattedDate date={updatedDate} compact />
 								</span>
 							)}
 							{author && <span class="author">· {author}</span>}

@@ -3,19 +3,30 @@ interface Props {
 	date: Date;
 	locale?: string;
 	options?: Intl.DateTimeFormatOptions;
+	compact?: boolean;  // 紧凑格式
 }
 
 const {
 	date,
 	locale = 'zh-CN',
-	options = {
+	options,
+	compact = false,
+} = Astro.props;
+
+// 如果没有指定 options，根据 compact 参数选择默认格式
+const dateOptions = options || (compact 
+	? {
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit',
+	}
+	: {
 		year: 'numeric',
 		month: 'long',
 		day: 'numeric',
-	},
-} = Astro.props;
+	});
 
-const formattedDate = new Date(date).toLocaleDateString(locale, options);
+const formattedDate = new Date(date).toLocaleDateString(locale, dateOptions);
 ---
 
-<time datetime={new Date(date).toISOString()}>{formattedDate}</time>
+<time datetime={new Date(date).toISOString()} class={compact ? 'compact' : ''}>{formattedDate}</time>
