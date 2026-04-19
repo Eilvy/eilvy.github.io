@@ -7,10 +7,27 @@ import { SITE_TITLE, SITE_DESCRIPTION, POSTS_PER_PAGE } from '../consts';
 
 const posts = await getCollection('blog');
 
-// 过滤草稿并排序
+// 过滤草稿并排序（优先显示置顶文章）
 const publishedPosts = posts
 	.filter((post) => !(post.data as any).draft)
-	.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+	.sort((a, b) => {
+		const aPin = (a.data as any).pin || false;
+		const bPin = (b.data as any).pin || false;
+		
+		// 如果都是置顶文章，按 pinOrder 排序
+		if (aPin && bPin) {
+			const aOrder = (a.data as any).pinOrder || 999;
+			const bOrder = (b.data as any).pinOrder || 999;
+			return aOrder - bOrder;
+		}
+		
+		// 只有一个是置顶文章，置顶的排在前面
+		if (aPin) return -1;
+		if (bPin) return 1;
+		
+		// 都不是置顶文章，按发布日期排序
+		return b.data.pubDate.valueOf() - a.data.pubDate.valueOf();
+	})
 	.slice(0, POSTS_PER_PAGE);
 
 // 获取所有标签

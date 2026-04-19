@@ -18,6 +18,8 @@ const blog = defineCollection({
 			categories: z.array(z.string()).default([]),
 			draft: z.boolean().default(false),
 			author: z.string().default('eilvy'),
+			pin: z.boolean().default(false),
+			pinOrder: z.number().default(999),
 		}),
 });
 

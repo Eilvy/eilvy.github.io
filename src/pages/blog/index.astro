@@ -6,7 +6,22 @@ import { SITE_TITLE } from '../../consts';
 
 const posts = (await getCollection('blog'))
 	.filter((post) => !post.data.draft)
-	.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+	.sort((a, b) => {
+		const aPin = a.data.pin || false;
+		const bPin = b.data.pin || false;
+		
+		// 如果都是置顶文章，按 pinOrder 排序
+		if (aPin && bPin) {
+			return (a.data.pinOrder || 999) - (b.data.pinOrder || 999);
+		}
+		
+		// 只有一个是置顶文章，置顶的排在前面
+		if (aPin) return -1;
+		if (bPin) return 1;
+		
+		// 都不是置顶文章，按发布日期排序
+		return b.data.pubDate.valueOf() - a.data.pubDate.valueOf();
+	});
 ---
 
 <BlogLayout title={`博客 - ${SITE_TITLE}`} description="所有技术文章列表">

@@ -6,6 +6,8 @@ tags: ['blog', 'welcome', 'intro']
 categories: ['随笔']
 heroImage: '../../assets/blog-placeholder-1.jpg'
 author: 'eilvy'
+pin: true
+pinOrder: 1
 ---
 
 ## 👋 你好，世界！

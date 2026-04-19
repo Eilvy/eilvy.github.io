@@ -10,9 +10,11 @@ interface BlogPostData {
 	updatedDate?: Date;
 	tags: string[];
 	categories: string[];
-	heroImage?: string;
+	heroImage?: string | { src: string; width: number; height: number; format: string };
 	author?: string;
 	draft?: boolean;
+	pin?: boolean;
+	pinOrder?: number;
 }
 
 type Post = CollectionEntry<'blog'> & { data: BlogPostData };
