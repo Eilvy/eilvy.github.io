@@ -51,7 +51,7 @@ pinOrder: 1
 
 ### 💡 感兴趣的话题
 
-运维开发 · Kubernetes · Docker · 前端性能优化 · TypeScript · Go 语言 · Python · Linux 系统 · 开源项目 · 技术分享
+运维开发 · Kubernetes · Docker · 后端性能优化 · TypeScript · Go 语言 · Python · Linux 系统 · 开源项目 · 技术分享
 
 ### 🚀 为什么选择 Astro？
 
@@ -73,7 +73,7 @@ pinOrder: 1
 
 - **运维开发**：Kubernetes、Docker、CI/CD、自动化运维
 - **后端开发**：Go、Python、MySQL、Redis、Nginx
-- **前端技术**：HTML、CSS、JavaScript、TypeScript、Vite
+- **前端技术**：HTML、CSS、JavaScript、TypeScript
 - **开发工具**：VS Code、Git、npm/pnpm、Trae、Cursor
 - **最佳实践**：代码规范、性能优化、可访问性
 
@@ -86,7 +86,7 @@ pinOrder: 1
 - Python 自动化运维脚本
 - CI/CD Pipeline 搭建指南
 - Docker 容器化实践
-- 前端性能优化技巧
+- 后端性能优化技巧
 
 感谢你的阅读，希望这些文章能对你有所帮助！
 
