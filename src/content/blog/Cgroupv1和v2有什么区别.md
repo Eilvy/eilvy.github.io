@@ -3,7 +3,7 @@ title: 'Cgroup v1 和 v2有什么区别'
 description: '分析容器底层的原理'
 pubDate: 2026-05-10
 tags: ['Docker','Container','Linux']
-categories: ['容器'，'计算机系统']
+categories: ['容器','计算机系统']
 author: 'eilvy'
 ---
 
