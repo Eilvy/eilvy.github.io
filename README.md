@@ -1,63 +1,96 @@
-# Astro Starter Kit: Blog
+<p align="center">
+  <h1 align="center">👋 你好，我是 Eilvy</h1>
+  <p align="center">
+    <strong>运维开发 / 全栈（主后端）开发者</strong>
+  </p>
+  <p align="center">
+    后端开发者 · 技术运维爱好者 · 终身学习者
+  </p>
+</p>
 
-```sh
-npm create astro@latest -- --template blog
-```
+<p align="center">
+  <a href="mailto:stellaeil@outlook.com">📧 stellaeil@outlook.com</a>
+  ·
+  <a href="https://github.com/eilvy">🐙 github.com/eilvy</a>
+  ·
+  <a href="https://eilvy.github.io">🌐 eilvy.github.io</a>
+</p>
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+---
 
-Features:
+## 📝 关于我
 
-- ✅ Minimal styling (make it your own!)
-- ✅ 100/100 Lighthouse performance
-- ✅ SEO-friendly with canonical URLs and Open Graph data
-- ✅ Sitemap support
-- ✅ RSS Feed support
-- ✅ Markdown & MDX support
+我是 **Eilvy**（Eiluy_468），一名热爱技术的运维开发者和全栈（主后端）开发者。
 
-## 🚀 Project Structure
+我热衷于探索新技术，分享知识，并致力于创造优秀的用户体验和高效的运维解决方案。这个博客是我记录学习历程、分享技术文章的平台。在这里，你会找到关于后端开发、VibeCoding、运维开发等主题的文章。
 
-Inside of your Astro project, you'll see the following folders and files:
+## 🛠️ 技术栈
+
+### 运维开发
+- Linux 服务器管理
+- Docker & Kubernetes
+- Informer
+- CI/CD Pipeline
+- GitLab CI
+- Gitea
+
+### 后端开发
+- Go
+- Python（Django / Flask）
+- MySQL
+- Redis
+- Nginx
+
+### 工具 & 平台
+- Git & GitHub
+- VS Code
+- Trae / Cursor
+- npm / pnpm
+- Vite
+
+## 💡 感兴趣的话题
+
+`运维开发` `Kubernetes` `Docker` `后端性能优化` `TypeScript` `Golang` `Python` `Linux 系统` `开源项目` `技术分享` `VibeCoding`
+
+## 📬 教育背景
+
+**软件工程**
+
+主修课程：数据结构、操作系统、计算机网络、数据库系统、集群运维等
+
+## 📂 博客项目结构
 
 ```text
-├── public/
+├── public/          # 静态资源
 ├── src/
-│   ├── assets/
-│   ├── components/
-│   ├── content/
-│   ├── layouts/
-│   └── pages/
+│   ├── assets/      # 资源文件
+│   ├── components/  # 组件
+│   ├── content/     # 博客文章（Markdown / MDX）
+│   ├── layouts/     # 布局模板
+│   └── pages/       # 页面
 ├── astro.config.mjs
-├── README.md
 ├── package.json
 └── tsconfig.json
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+## 🚀 本地运行
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+```sh
+# 安装依赖
+npm install
 
-The `src/content/` directory contains "collections" of related Markdown and MDX documents. Use `getCollection()` to retrieve posts from `src/content/blog/`, and type-check your frontmatter using an optional schema. See [Astro's Content Collections docs](https://docs.astro.build/en/guides/content-collections/) to learn more.
+# 启动开发服务器
+npm run dev
 
-Any static assets, like images, can be placed in the `public/` directory.
+# 构建生产版本
+npm run build
 
-## 🧞 Commands
+# 预览构建结果
+npm run preview
+```
 
-All commands are run from the root of the project, from a terminal:
+---
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Check out [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
-
-## Credit
-
-This theme is based off of the lovely [Bear Blog](https://github.com/HermanMartinus/bearblog/).
+<p align="center">
+  <sub>Built with ❤️ using <a href="https://astro.build">Astro</a></sub>
+</p>
