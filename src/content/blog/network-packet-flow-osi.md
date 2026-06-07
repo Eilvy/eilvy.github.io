@@ -1,0 +1,216 @@
+---
+title: '网络包从网桥到 Pod 网卡的底层链路（OSI 七层对照）'
+description: '分析网络包从网桥到 Pod 网卡的底层链路，包括物理层、数据链路层、网络层、传输层、会话层、表示层、应用层。'
+pubDate: 2026-05-13
+tags: ['Container', 'Network']
+categories: ['容器', '网络']
+author: 'eilvy'
+---
+
+## 前置：veth pair 的拓扑
+
+每个 Pod 有一个 veth pair，一根线两个头：
+
+```
+宿主机:  vethXXXX (插在网桥上)        Pod内: eth0
+         ┌──────────┐                ┌──────────┐
+         │  veth pair │══════════════│  veth pair│
+         │  (host端) │   虚拟数据通道   │  (pod端) │
+         └──────────┘                └──────────┘
+              │
+        插在 cni0/docker0 网桥上
+```
+
+```bash
+# 在宿主机上能看到 veth 的 host 端
+ip link show type veth
+```
+
+---
+
+## 第一跳：物理网卡到宿主机协议栈
+
+```
+物理网卡 eth0
+    │  L1 物理层：电信号/光信号 → 比特流
+    │  L2 数据链路层：网卡 MAC 校验、剥离以太网帧头、触发硬中断
+    ▼
+宿主机内核网络栈
+    │  L2→L3：软中断 NAPI 收包，sk_buff 分配
+    │  L3 网络层：PREROUTING 钩子，目标 IP 不是本机 → FORWARD
+    ▼
+```
+
+**此时包的状态**：以太网帧头仍在，三层信息完整，sk_buff 在宿主机内核中。
+
+---
+
+## 第二跳：宿主机协议栈 → 网桥
+
+```
+宿主机 FORWARD 路径
+    │  L3 网络层：路由决策——目标 IP 属于 Pod 子网，出接口是 cni0
+    ▼
+网桥 cni0
+    │  L2 数据链路层：这是网桥工作的层次
+    │  网桥不理解 IP，只理解 MAC
+    │
+    │  核心操作：
+    │  1. 查 FDB 表（MAC 地址 → 出口端口）
+    │     目标 MAC = Pod 内 eth0 的 MAC
+    │     FDB 说：这个 MAC 在 vethA 后面
+    │  2. 若目标 MAC 未命中 → 泛洪到所有端口（ARP 广播就走的这个）
+    │  3. 命中 → 单播，帧从 vethA 口出去
+    ▼
+```
+
+### 网桥 MAC 学习（FDB）
+
+网桥是二层虚拟交换机，内核通过 **FDB（Forwarding Database）** 做 MAC 地址学习：
+
+```bash
+bridge fdb show dev vethA
+# 输出示例：
+# aa:bb:cc:dd:ee:ff dev vethA master cni0
+```
+
+**学习过程**：
+- Pod 内 eth0 首次向外发包时，网桥记录 `Pod-MAC → veth_host 端` 的映射
+- 之后网桥收到目标 MAC 为 Pod 的包时，直接查表，精准投递到对应的 veth host 端
+
+### 网桥转发决策
+
+网桥收到包后的逻辑（内核 `br_handle_frame()`）：
+
+```c
+// 简化逻辑
+if (目标MAC是广播/多播) {
+    泛洪到所有端口(veth host端)  // ARP 请求走这条路
+} else {
+    查 FDB 表
+    if (命中) → 单播到对应 veth host 端口
+    else     → 泛洪到所有端口
+}
+```
+
+**为什么网桥是 L2**：网桥只看 **MAC 地址头** 做转发决策，不修改、不查看 IP 层。它本质上是一个软件实现的二层交换机。
+
+---
+
+## 第三跳：veth host 端 → veth pod 端
+
+```
+veth (host 端) —— vethA
+    │  L1 物理层 / L2 数据链路层：这里没有真正物理层
+    │  veth pair 是纯内存结构，不经过真实网卡
+    │
+    │  发生的事：
+    │  - veth host 端的 xmit() 被调用
+    │  - 内核直接将对端（veth pod 端）的 net_device 指针找来
+    │  - sk_buff（整个以太网帧）通过 dev_forward_skb() 内存传递
+    │  - 不经过任何 L1 物理层，没有电信号，没有 DMA
+    │
+    ▼
+veth (pod 端) = Pod 内 eth0
+    │  L2 数据链路层：Pod 的 eth0 收到完整的以太网帧
+    │  - 目标 MAC 匹配（就是 eth0 自己的 MAC）
+    │  - 剥离二层帧头，上送 L3
+    ▼
+```
+
+### veth pair 跨端转发的内核实现
+
+veth pair 的本质是内核中的一对 `net_device` 结构体，它们之间有一条**虚拟数据通道**：
+
+```
+veth host 端                    veth pod 端
+  │                               │
+  │  xmit() 直接调用对端 rx()     │
+  │  (函数调用, 不是网络传输)      │
+  │                               │
+  └────────── 内存拷贝 ──────────┘
+```
+
+关键：**不是物理发送，是内核函数调用 + 内存拷贝**。veth host 端的 `xmit()` 直接调用 veth pod 端的 `receive()` 函数，将 `sk_buff` 交给对端处理。
+
+```c
+// 内核 veth_xmit() 简化：
+veth_xmit(skb, dev) {
+    rcv = rcu_dereference(priv->peer);  // 找到对端
+    dev_forward_skb(rcv, skb);          // 直接提交给对端的协议栈
+}
+```
+
+**veth 在哪一层**：虽然它是"虚拟网线"，但传递的是完整的 L2 帧。说它是 **L1 + L2 的纯软件模拟** 最准确——模拟了一条网线的功能但不涉及物理信号。
+
+---
+
+## 第四跳：Pod 内协议栈 → 应用进程
+
+```
+Pod 协议栈 PREROUTING
+    │  L3 网络层：iptables/nftables PREROUTING 钩子
+    │  - Service DNAT 在这里生效（ClusterIP → Pod IP）
+    │  - 路由决策：目标 IP = 本 Pod IP → INPUT（不是 FORWARD）
+    ▼
+INPUT 路径
+    │  L3 网络层：INPUT 钩子，Pod 内的网络策略（NetworkPolicy）可在此过滤
+    │  L4 传输层：解 TCP/UDP 头，查 socket 五元组匹配
+    │  - TCP：校验序列号、ACK 机制、拥塞控制
+    │  - 数据放入 socket 接收缓冲区
+    ▼
+socket 层
+    │  L5 会话层 / L6 表示层 / L7 应用层
+    │  - 数据从内核态拷贝到用户态
+    │  - 应用进程通过 read()/recv() 拿到数据
+    │  - HTTP/gRPC/DNS 等应用层协议解析
+    ▼
+应用进程
+```
+
+---
+
+## OSI 七层对照总表
+
+| 跳 | 环节 | 工作的 OSI 层 | 核心操作 |
+|----|------|:-------------:|---------|
+| 1  | 物理网卡 eth0 | L1 → L2 | 电信号→比特流→以太网帧 |
+| 1  | 宿主机协议栈 PREROUTING | L3 | IP 路由，判断 FORWARD |
+| 2  | 网桥 cni0 | L2 | MAC 地址学习 + FDB 查表转发 |
+| 3  | veth pair 跨端 | L1–L2（软件模拟） | sk_buff 内存传递，无真实物理层 |
+| 3  | Pod eth0 接收 | L2 → L3 | MAC 校验，剥离帧头，上送 IP 层 |
+| 4  | Pod PREROUTING (DNAT) | L3 | Service DNAT 转换 |
+| 4  | Pod INPUT + TCP | L3 + L4 | 路由本机 + 传输层处理 |
+| 4  | socket → 应用 | L5–L7 | 内核态→用户态，应用协议解析 |
+
+---
+
+## 用数据包追踪验证
+
+```bash
+# 在宿主机上追踪包
+iptables -t raw -A PREROUTING  -j TRACE
+iptables -t raw -A OUTPUT      -j TRACE
+
+# 或用 nft
+nft add rule bridge filter forward meta nftrace set 1
+
+# 查看结果
+cat /proc/net/nf_conntrack
+nft monitor trace
+```
+
+---
+
+## 关键认知
+
+- **网桥是纯 L2 设备**：不看 IP，只看 MAC，这就是为什么跨网桥需要三层路由
+- **veth pair 是 L1/L2 的内核模拟**：没有真实物理层，靠函数调用和内存拷贝替代了网线上的信号传输
+- **三层处理分散在多处**：宿主机做路由决策（进 FORWARD），Pod 内做 DNAT 和 INPUT 决策，每一跳都有独立的三层逻辑
+- **整个路径上 sk_buff 对象一直存在**：从物理网卡拿到包开始，到 Pod 应用进程读到数据，内核始终用同一个 sk_buff 承载数据（只在必要时 clone/copy）
+
+---
+
+## 总结
+
+> 物理网卡 → 宿主机协议栈 → 网桥查 FDB 找 veth host 端 → veth 内核函数调用直接投递到 pod 端 → pod 内 eth0 → pod 协议栈 → 应用进程。veth pair 之间没有物理链路，本质是**内核内的函数调用 + sk_buff 内存传递**，这是整个路径上最快的环节。
