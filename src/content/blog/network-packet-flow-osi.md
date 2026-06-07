@@ -1,7 +1,7 @@
 ---
 title: '网络包从网桥到 Pod 网卡的底层链路（OSI 七层对照）'
 description: '分析网络包从网桥到 Pod 网卡的底层链路，包括物理层、数据链路层、网络层、传输层、会话层、表示层、应用层。'
-pubDate: 2026-05-13
+pubDate: 2026-06-17
 tags: ['Container', 'Network']
 categories: ['容器', '网络']
 author: 'eilvy'
