@@ -72,8 +72,25 @@ export const box = (
 	label: { text: label, fontSize: size, fontFamily: FONT_LOCAL },
 });
 
-/** 竖直箭头（向下） */
-export const vArrow = (x: number, y1: number, y2: number, color: string = C.stroke): El => ({
+/**
+ * 竖直箭头（向下）。
+ *
+ * 关于箭头上的文字标注 —— 一律用 label，不要另写一个 text 元素。
+ *
+ * 原因：Excalidraw 会把 label 自动绑定到箭头上并居中（横竖箭头都是），
+ * 而手工摆一个 text 就得自己算坐标，极易偏。实测现状里两条标注的偏差：
+ *   - 「虚拟数据通道」相对箭头中点偏移 dx=-18 / dy=+71
+ *   - 「host 端插在网桥上」相对箭头中点偏移 dx=+191
+ * 一旦调整箭头长度或位置，这些硬编码坐标还会继续错位；
+ * 用 label 则完全跟随箭头，改坐标不用管标注。
+ */
+export const vArrow = (
+	x: number,
+	y1: number,
+	y2: number,
+	color: string = C.stroke,
+	label?: string
+): El => ({
 	type: 'arrow',
 	x,
 	y: y1,
@@ -84,10 +101,19 @@ export const vArrow = (x: number, y1: number, y2: number, color: string = C.stro
 	strokeColor: color,
 	strokeWidth: 2,
 	endArrowhead: 'arrow',
+	...(label
+		? { label: { text: label, fontSize: 13, fontFamily: FONT_LOCAL } }
+		: {}),
 });
 
-/** 水平双向箭头 */
-export const hArrow = (x1: number, x2: number, y: number, color: string = C.stroke): El => ({
+/** 水平双向箭头（label 同 vArrow，由 Excalidraw 自动居中） */
+export const hArrow = (
+	x1: number,
+	x2: number,
+	y: number,
+	color: string = C.stroke,
+	label?: string
+): El => ({
 	type: 'arrow',
 	x: x1,
 	y,
@@ -99,6 +125,9 @@ export const hArrow = (x1: number, x2: number, y: number, color: string = C.stro
 	strokeWidth: 2,
 	startArrowhead: 'arrow',
 	endArrowhead: 'arrow',
+	...(label
+		? { label: { text: label, fontSize: 13, fontFamily: FONT_LOCAL } }
+		: {}),
 });
 
 export interface Step {

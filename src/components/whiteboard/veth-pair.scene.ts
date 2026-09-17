@@ -24,16 +24,14 @@ export const vethPairScene: El[] = [
 	box(hostVeth.x, hostVeth.y, hostVeth.w, hostVeth.h, 'vethXXXX\n（宿主机侧 host 端）', C.l2, 16),
 	box(podEth0.x, podEth0.y, podEth0.w, podEth0.h, 'eth0\n（Pod 侧 pod 端）', C.l4, 16),
 
-	// ── 中间的虚拟数据通道（双向）
-	hArrow(hostVeth.x + hostVeth.w, podEth0.x, hostVeth.y + hostVeth.h / 2, C.emphasis),
-	txt(300, 248, '虚拟数据通道', 14, C.emphasis),
+	// ── 中间的虚拟数据通道（双向）；标注用 label，由 Excalidraw 自动居中
+	hArrow(hostVeth.x + hostVeth.w, podEth0.x, hostVeth.y + hostVeth.h / 2, C.emphasis, '虚拟数据通道'),
 
 	// ── 网桥
 	box(bridge.x, bridge.y, bridge.w, bridge.h, 'cni0 / docker0 网桥', C.l2, 16),
 
-	// 宿主机侧网卡 → 网桥
-	vArrow(hostVeth.x + hostVeth.w / 2, hostVeth.y + hostVeth.h, bridge.y),
-	txt(290, 280, 'host 端插在网桥上', 14, C.muted),
+	// 宿主机侧网卡 → 网桥；标注同样交给 label
+	vArrow(hostVeth.x + hostVeth.w / 2, hostVeth.y + hostVeth.h, bridge.y, C.muted, 'host 端插在网桥上'),
 
 	txt(60, 480, '数据从一端写入，另一端立即可读 —— 内核里是一对相连的虚拟网卡', 14, C.muted),
 ];
