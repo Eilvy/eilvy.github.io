@@ -8,6 +8,14 @@ author: 'eilvy'
 ---
 
 import VethPairWhiteboard from '../../components/whiteboard/VethPairWhiteboard.astro';
+import WhiteboardLoader from '../../components/whiteboard/WhiteboardLoader.astro';
+import {
+	hop1Scene,
+	hop2Scene,
+	hop3Scene,
+	hop4Scene,
+	vethKernelScene,
+} from '../../components/whiteboard/osi-flow.scenes';
 
 ## 前置：veth pair 的拓扑
 
@@ -39,6 +47,16 @@ ip link show type veth
 
 ## 第一跳：物理网卡到宿主机协议栈
 
+<WhiteboardLoader
+	elements={hop1Scene}
+	label="第一跳：物理网卡 → 宿主机协议栈"
+	buttonText="点击加载第一跳流程图"
+	height={660}
+/>
+
+<details>
+<summary>等价的 ASCII 图（便于复制 / 无 JS 环境）</summary>
+
 ```
 物理网卡 eth0
     │  L1 物理层：电信号/光信号 → 比特流
@@ -50,11 +68,23 @@ ip link show type veth
     ▼
 ```
 
+</details>
+
 **此时包的状态**：以太网帧头仍在，三层信息完整，sk_buff 在宿主机内核中。
 
 ---
 
 ## 第二跳：宿主机协议栈 → 网桥
+
+<WhiteboardLoader
+	elements={hop2Scene}
+	label="第二跳：宿主机协议栈 → 网桥，含 FDB 查表决策"
+	buttonText="点击加载第二跳流程图"
+	height={570}
+/>
+
+<details>
+<summary>等价的 ASCII 图（便于复制 / 无 JS 环境）</summary>
 
 ```
 宿主机 FORWARD 路径
@@ -72,6 +102,8 @@ ip link show type veth
     │  3. 命中 → 单播，帧从 vethA 口出去
     ▼
 ```
+
+</details>
 
 ### 网桥 MAC 学习（FDB）
 
@@ -108,6 +140,16 @@ if (目标MAC是广播/多播) {
 
 ## 第三跳：veth host 端 → veth pod 端
 
+<WhiteboardLoader
+	elements={hop3Scene}
+	label="第三跳：veth host 端 → veth pod 端"
+	buttonText="点击加载第三跳流程图"
+	height={580}
+/>
+
+<details>
+<summary>等价的 ASCII 图（便于复制 / 无 JS 环境）</summary>
+
 ```
 veth (host 端) —— vethA
     │  L1 物理层 / L2 数据链路层：这里没有真正物理层
@@ -127,9 +169,21 @@ veth (pod 端) = Pod 内 eth0
     ▼
 ```
 
+</details>
+
 ### veth pair 跨端转发的内核实现
 
 veth pair 的本质是内核中的一对 `net_device` 结构体，它们之间有一条**虚拟数据通道**：
+
+<WhiteboardLoader
+	elements={vethKernelScene}
+	label="veth pair 跨端转发的内核实现"
+	buttonText="点击加载结构示意图"
+	height={470}
+/>
+
+<details>
+<summary>等价的 ASCII 图</summary>
 
 ```
 veth host 端                    veth pod 端
@@ -139,6 +193,8 @@ veth host 端                    veth pod 端
   │                               │
   └────────── 内存拷贝 ──────────┘
 ```
+
+</details>
 
 关键：**不是物理发送，是内核函数调用 + 内存拷贝**。veth host 端的 `xmit()` 直接调用 veth pod 端的 `receive()` 函数，将 `sk_buff` 交给对端处理。
 
@@ -155,6 +211,16 @@ veth_xmit(skb, dev) {
 ---
 
 ## 第四跳：Pod 内协议栈 → 应用进程
+
+<WhiteboardLoader
+	elements={hop4Scene}
+	label="第四跳：Pod 内协议栈 → 应用进程"
+	buttonText="点击加载第四跳流程图"
+	height={720}
+/>
+
+<details>
+<summary>等价的 ASCII 图（便于复制 / 无 JS 环境）</summary>
 
 ```
 Pod 协议栈 PREROUTING
@@ -176,6 +242,8 @@ socket 层
     ▼
 应用进程
 ```
+
+</details>
 
 ---
 

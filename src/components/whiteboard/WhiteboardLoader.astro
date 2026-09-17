@@ -1,0 +1,166 @@
+---
+import Whiteboard from './Whiteboard.tsx';
+import type { El } from './scene-kit';
+
+interface Props {
+	/** 场景元素（纯数据） */
+	elements: El[];
+	/** 无障碍标签 / 图表说明 */
+	label: string;
+	/** 点击前占位区高度（px）。刻意比展开后小，避免正文里一个大空框占太多篇幅 */
+	placeholderHeight?: number;
+	/** 加载后内嵌画布高度（px） */
+	height?: number;
+	/** 占位按钮上的文案 */
+	buttonText?: string;
+}
+
+const {
+	elements,
+	label,
+	placeholderHeight = 200,
+	height = 380,
+	buttonText = '点击加载流程图',
+} = Astro.props;
+---
+
+{/*
+  点击加载（click-to-load）。
+
+  Excalidraw 主 chunk 约 1.1MB（gzip 约 361KB），若直接用
+  <Whiteboard client:only="react" />，打开文章时就会下载执行 ——
+  哪怕读者根本不看这张图。这里把 island 放进 <template>：
+  模板内容不参与渲染、不会连接 DOM，因此 island 的 connectedCallback
+  不会触发、组件也不会被 import，直到读者点击后把它克隆进页面。
+
+  ─ 为什么不用手动 import('./Whiteboard.tsx') ─
+  一开始是自己 document.createElement + import() 挂载的，生产环境正常，
+  但 `astro dev` 下必然失败，报：
+    @vitejs/plugin-react can't detect preamble. Something is wrong.
+  原因是 Vite 的 React Fast Refresh 需要一个 preamble（$RefreshReg$ 等），
+  @astrojs/react 是把它作为 before-hydration 脚本、以「每个 island 一个
+  before-hydration-url 属性」的形式注入的（见 astro/dist/runtime/server/
+  hydration.js）。只有经 Astro 渲染流程产出的 island 才会带上这个属性；
+  手动 import 绕过了整条链路，拿不到 preamble，dev 下 React 模块一加载就抛错。
+
+  改用 <template> + 克隆后，island 由 Astro 正常产出（自带 before-hydration-url），
+  克隆进 DOM 时它会自己先加载 preamble 再 hydrate，dev / prod 都能跑；
+  同时「不点击就不连接」也天然保证了懒加载。
+*/}
+<div class="wb-loader" data-state="idle">
+	<div class="wb-placeholder" style={`min-height:${placeholderHeight}px`}>
+		<button type="button" class="wb-btn">
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+				<circle cx="11" cy="11" r="7"></circle>
+				<path d="M21 21l-4.35-4.35"></path>
+			</svg>
+			<span class="wb-btn-label">{buttonText}</span>
+			<span class="wb-hint">约 1MB，按需加载</span>
+		</button>
+	</div>
+
+	<div class="wb-status" role="status">正在加载…</div>
+	<div class="wb-mount"></div>
+
+	{/* island 存放在模板里，点击后才克隆到 .wb-mount */}
+	<template class="wb-tpl">
+		<Whiteboard client:only="react" elements={elements} height={height} label={label} />
+	</template>
+</div>
+
+<script>
+	document.querySelectorAll<HTMLElement>('.wb-loader').forEach((root) => {
+		root.querySelector('.wb-btn')?.addEventListener('click', () => {
+			const tpl = root.querySelector<HTMLTemplateElement>('.wb-tpl');
+			const mount = root.querySelector<HTMLElement>('.wb-mount');
+			if (!tpl || !mount) return;
+
+			// 先切到 ready，让 .wb-mount 变成可见，island 连接后才能量到正确尺寸
+			root.dataset.state = 'ready';
+			// 克隆模板内容 → island 接入 DOM → 自动加载 preamble 并 hydrate
+			mount.appendChild(tpl.content.cloneNode(true));
+		});
+	});
+</script>
+
+<style>
+	.wb-loader {
+		margin: 1.5em 0;
+		border: 1px solid var(--color-border);
+		border-radius: 8px;
+		overflow: hidden;
+	}
+
+	/* 默认全部隐藏，由 data-state 精确点亮其中一个，保证互斥且不留占位高度 */
+	.wb-loader > .wb-placeholder,
+	.wb-loader > .wb-status,
+	.wb-loader > .wb-mount {
+		display: none;
+	}
+
+	.wb-loader[data-state='idle'] > .wb-placeholder,
+	.wb-loader[data-state='loading'] > .wb-status {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5em;
+		padding: 1.25em;
+		background-color: var(--color-bg-secondary);
+	}
+
+	.wb-loader[data-state='ready'] > .wb-mount {
+		display: block;
+	}
+
+	/* 占位期的按钮做得克制些：不抢正文注意力 */
+	.wb-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5em;
+		padding: 0.5em 1.1em;
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: var(--color-primary);
+		background-color: var(--color-bg);
+		border: 1px solid var(--color-border);
+		border-radius: 9999px;
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+
+	.wb-btn:hover {
+		border-color: var(--color-primary);
+		background-color: var(--color-primary-light);
+	}
+
+	.wb-btn svg {
+		width: 16px;
+		height: 16px;
+	}
+
+	.wb-hint {
+		font-size: 0.75rem;
+		font-weight: 400;
+		color: var(--color-text-light);
+	}
+</style>
+
+<style is:global>
+	/*
+	 * Excalidraw 的汉堡菜单按钮在 viewMode 下并未被它自带的样式隐藏
+	 * （.excalidraw--view-mode 只调整了 .App-menu 的布局），
+	 * 会在左下角留下一个点不开的悬浮按钮。这里显式去掉。
+	 */
+	.wb-mount .main-menu-trigger,
+	.wb-mount .App-menu_top,
+	.wb-mount .App-bottom-bar {
+		display: none !important;
+	}
+
+	/* astro-island 默认 display: contents，需要它撑满容器交给 Excalidraw 量尺寸 */
+	.wb-mount astro-island {
+		display: block;
+		height: 100%;
+	}
+</style>
