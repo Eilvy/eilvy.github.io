@@ -7,9 +7,16 @@ categories: ['容器', '网络']
 author: 'eilvy'
 ---
 
+import VethPairWhiteboard from '../../components/whiteboard/VethPairWhiteboard.astro';
+
 ## 前置：veth pair 的拓扑
 
 每个 Pod 有一个 veth pair，一根线两个头：
+
+<VethPairWhiteboard />
+
+<details>
+<summary>等价的 ASCII 图（便于复制 / 无 JS 环境）</summary>
 
 ```
 宿主机:  vethXXXX (插在网桥上)        Pod内: eth0
@@ -20,6 +27,8 @@ author: 'eilvy'
               │
         插在 cni0/docker0 网桥上
 ```
+
+</details>
 
 ```bash
 # 在宿主机上能看到 veth 的 host 端

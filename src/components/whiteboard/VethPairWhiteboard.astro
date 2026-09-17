@@ -1,0 +1,40 @@
+---
+import Whiteboard from './Whiteboard.tsx';
+import { vethPairScenes } from './veth-pair.scene';
+
+interface Props {
+	height?: number;
+}
+
+const { height = 520 } = Astro.props;
+---
+
+<Whiteboard
+	client:only="react"
+	elements={vethPairScenes}
+	height={height}
+	label="veth pair 拓扑：宿主机侧 vethXXXX 插在 cni0 网桥上，Pod 侧 eth0，两端由同一对 veth 连通"
+/>
+
+<style>
+	/* client:only 组件在挂载前无内容，给个占位高度避免布局跳动 */
+	:global(.whiteboard) {
+		margin: 1.5em 0;
+		border: 1px solid var(--color-border);
+		border-radius: 8px;
+		overflow: hidden;
+		/* 暗色主题下画布也是深色，避免加载瞬间闪白 */
+		background-color: var(--color-bg-secondary);
+	}
+
+	/*
+	 * Excalidraw 的汉堡菜单按钮在 viewMode 下并未被它自带的样式隐藏
+	 * （.excalidraw--view-mode 只调整了 .App-menu 的布局），
+	 * 会在左下角留下一个点不开的悬浮按钮。这里显式去掉。
+	 */
+	:global(.whiteboard .main-menu-trigger),
+	:global(.whiteboard .App-menu_top),
+	:global(.whiteboard .App-bottom-bar) {
+		display: none !important;
+	}
+</style>

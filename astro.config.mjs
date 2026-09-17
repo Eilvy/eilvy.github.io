@@ -1,6 +1,7 @@
 // @ts-check
 
 import mdx from '@astrojs/mdx';
+import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import tailwind from '@astrojs/tailwind';
 import { defineConfig, fontProviders } from 'astro/config';
@@ -8,7 +9,7 @@ import { defineConfig, fontProviders } from 'astro/config';
 // https://astro.build/config
 export default defineConfig({
 	site: 'https://eilvy.github.io',
-	integrations: [mdx(), sitemap(), tailwind()],
+	integrations: [mdx(), react(), sitemap(), tailwind()],
 	markdown: {
 		shikiConfig: {
 			theme: 'one-dark-pro',
