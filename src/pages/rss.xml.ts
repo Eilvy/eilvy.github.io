@@ -1,22 +1,22 @@
 import rss from '@astrojs/rss';
-import { getCollection } from 'astro:content';
+import { getSortedPosts } from '../utils/posts';
 import { SITE_TITLE, SITE_DESCRIPTION } from '../consts';
 
 export async function GET(context: any) {
-	const posts = await getCollection('blog');
-	
-	// 过滤掉草稿
-	const publishedPosts = posts.filter((post) => !post.data.draft);
-	
+	// 置顶优先，其余按「有效更新时间」倒序，与站点页面保持一致
+	const posts = await getSortedPosts();
+
 	return rss({
 		title: SITE_TITLE,
 		description: SITE_DESCRIPTION,
 		site: context.site,
-		items: publishedPosts.map((post) => ({
+		items: posts.map((post) => ({
 			title: post.data.title,
 			description: post.data.description,
 			link: `/blog/${post.id}/`,
-			pubDate: post.data.pubDate,
+			// RSS 的 pubDate 表达「本条目最后变化时间」，
+			// 因此优先取 updatedDate，没有更新过则回落到 pubDate
+			pubDate: post.data.updatedDate ?? post.data.pubDate,
 			author: post.data.author,
 			categories: post.data.categories,
 		})),

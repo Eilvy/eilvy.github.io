@@ -19,6 +19,10 @@ interface BlogPostData {
 
 const { title, description, pubDate, updatedDate, tags, categories, heroImage, author } = Astro.props as BlogPostData;
 
+// 仅当确实发生过更新时才显示「更新于」，
+// 避免 frontmatter 里写上与 pubDate 相同的 updatedDate 时出现冗余展示
+const hasUpdate = !!updatedDate && updatedDate.valueOf() !== pubDate.valueOf();
+
 // heroImage 可能已经是 ImageMetadata 对象（由 Astro 内容集合自动处理）
 // 或者是字符串路径（需要手动处理）
 const getHeroImage = async (path?: string | ImageMetadata): Promise<ImageMetadata | undefined> => {
@@ -93,7 +97,7 @@ const heroImageMetadata = await getHeroImage(heroImage);
 					<div class="post-meta">
 						<div class="meta-left">
 							<FormattedDate date={pubDate} compact />
-							{updatedDate && (
+							{hasUpdate && updatedDate && (
 								<span class="updated-date">
 									· 更新于 <FormattedDate date={updatedDate} compact />
 								</span>
