@@ -154,7 +154,11 @@ Shiki 输出形如 `<code><span class="line">…</span>\n<span class="line">…<
 
 1. **`.line` 必须保持 `display: inline`**
    改成 `block` 后那些 `\n` 会各自生成一个行盒，每行代码后多出一个空行，
-   行距直接翻倍（实测 21px → 42px）。
+   行距直接翻倍。
+
+   > 验证口径：行距应恒等于 `line-height`。移动端断点（≤768px，根字号 14px）
+   > 实测 21px → 42px；桌面端（根字号 16px）行距为 24px。
+   > 两个断点下「行距 == line-height」都成立，翻倍时则明显不等。
 
 2. **代码块不折行（`wrap: false`）**
    行号是每个 `.line` 的 `::before`。一旦折行，续行不属于行号的可见行首，
