@@ -170,6 +170,33 @@ html.dark *:focus-visible {
 }
 
 /*
+ * 交互屏蔽层（仅内嵌视图）。
+ *
+ * 盖在画布上吃掉所有指针事件：viewMode 下 Excalidraw 仍保留了
+ * .excalidraw__canvas.interactive（pointer-events: auto, cursor: grab），
+ * 不加这层的话读者能把插图拖着跑。点击会冒泡到 .wb-inline 触发放大。
+ * 不直接覆盖 Excalidraw 内部类名，避免其版本升级后失效。
+ */
+.wb-shield {
+	position: absolute;
+	inset: 0;
+	display: block;
+	/*
+	 * 必须显式抬到画布之上：Excalidraw 的交互画布带 z-index:2
+	 * （其 --zIndex-canvas），而本层默认 z-index:auto 会被压在下面，
+	 * 挡不住拖拽。同时给 .whiteboard 建层叠上下文，确保同层比较。
+	 */
+	z-index: 3;
+	cursor: zoom-in;
+}
+
+/* 让内嵌画布自身成为定位/层叠基准，避免与 shield 的层级关系依赖外部祖先 */
+.wb-inline .whiteboard {
+	position: relative;
+	z-index: 0;
+}
+
+/*
  * "点击放大"提示。
  * 只在悬停/聚焦时淡入，平时不干扰阅读；触屏设备没有 hover，
  * 用 @media (hover: none) 让它常显。

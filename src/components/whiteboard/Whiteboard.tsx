@@ -267,6 +267,17 @@ export default function Whiteboard({ elements, height = 300, label }: Props) {
 				}}
 			>
 				<Viewer elements={elements} theme={theme} mode="inline" height={height} label={label} />
+				{/*
+				  交互屏蔽层。
+				  viewMode 下 Excalidraw 仍会渲染一个 pointer-events: auto 的
+				  .excalidraw__canvas.interactive（cursor: grab），读者能把插图
+				  拖着跑、也能用滚轮平移 —— 但这里只想让它当一张「可点击的插图」。
+				  与其覆盖 Excalidraw 的内部类名（版本升级就可能失效），
+				  不如盖一层透明层把指针事件全部吃掉：
+				  点击落在该层 → 冒泡到外层 div → 打开弹窗；
+				  拖拽 / 滚轮 / 双击等一概不会传到画布。
+				*/}
+				<span className="wb-shield" aria-hidden="true" />
 				<span className="wb-zoom-hint" aria-hidden="true">
 					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
 						<circle cx="11" cy="11" r="7" />
