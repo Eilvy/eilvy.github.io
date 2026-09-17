@@ -1,27 +1,11 @@
 ---
-import type { CollectionEntry } from 'astro:content';
 import FormattedDate from './FormattedDate.astro';
 import Tag from './Tag.astro';
 import { isUpdated } from '../utils/posts';
-
-interface BlogPostData {
-	title: string;
-	description: string;
-	pubDate: Date;
-	updatedDate?: Date;
-	tags: string[];
-	categories: string[];
-	heroImage?: string | { src: string; width: number; height: number; format: string };
-	author?: string;
-	draft?: boolean;
-	pin?: boolean;
-	pinOrder?: number;
-}
-
-type Post = CollectionEntry<'blog'> & { data: BlogPostData };
+import type { BlogPost } from '../types/blog';
 
 interface Props {
-	post: Post;
+	post: BlogPost;
 }
 
 const { post } = Astro.props;

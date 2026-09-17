@@ -1,6 +1,7 @@
-import { getCollection, type CollectionEntry } from 'astro:content';
+import { getCollection } from 'astro:content';
+import type { BlogPost } from '../types/blog';
 
-export type BlogPost = CollectionEntry<'blog'>;
+export type { BlogPost };
 
 /**
  * 文章的有效更新时间。
