@@ -31,7 +31,9 @@ type SkeletonElement = {
 	textAlign?: string;
 	verticalAlign?: string;
 	label?: { text: string; fontSize?: number; fontFamily?: number };
-	points?: [number, number][];
+	/* Excalidraw 的 points 是 [x, y] 数组；这里放宽为 number[][]，
+	 * 因为字面量数组在 TS 里推断为 number[] 而非元组，写成元组会误报 */
+	points?: number[][];
 	startBinding?: unknown;
 	endBinding?: unknown;
 	startArrowhead?: string | null;
