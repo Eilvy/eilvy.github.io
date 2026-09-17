@@ -125,7 +125,7 @@ export default function Whiteboard({ elements, height = 420, label }: Props) {
 	}, [scene]);
 
 	return (
-		<div class="whiteboard" style={{ height }} role="img" aria-label={label}>
+		<div className="whiteboard" style={{ height }} role="img" aria-label={label}>
 			<Excalidraw
 				excalidrawAPI={(api: unknown) => {
 					apiRef.current = api;

@@ -12,25 +12,27 @@ const { height = 520 } = Astro.props;
 {/*
   点击加载（click-to-load）。
 
-  不在 MDX 里直接写 <Whiteboard client:only="react" /> 的原因：
-  Excalidraw 主 chunk 约 1.1MB（gzip 约 361KB），client:only 会让它
-  在打开文章时就下载并执行 —— 哪怕读者根本不看这张图。
-  这里改为：先只渲染静态占位（纯 HTML/CSS，0 JS），
-  读者点击后才动态 import React 组件。
+  Excalidraw 主 chunk 约 1.1MB（gzip 约 361KB），若直接用
+  <Whiteboard client:only="react" />，打开文章时就会下载执行 ——
+  哪怕读者根本不看这张图。这里把 island 放进 <template>：
+  模板内容不参与渲染、不会连接 DOM，因此 island 的 connectedCallback
+  不会触发、组件也不会被 import，直到读者点击后把它克隆进页面。
 
-  场景数据用 <script type="application/json"> 传递，
-  避免把大段数据塞进内联脚本带来转义问题。
+  ── 为什么不用手动 import('./Whiteboard.tsx') ──
+  一开始我是自己 document.createElement + import() 挂载的，生产环境正常，
+  但 `astro dev` 下必然失败，报：
+    @vitejs/plugin-react can't detect preamble. Something is wrong.
+  原因是 Vite 的 React Fast Refresh 需要一个 preamble（$RefreshReg$ 等），
+  @astrojs/react 是把它作为 before-hydration 脚本、以「每个 island 一个
+  before-hydration-url 属性」的形式注入的（见 astro/dist/runtime/server/
+  hydration.js）。只有经 Astro 渲染流程产出的 island 才会带上这个属性；
+  手动 import 绕过了整条链路，拿不到 preamble，dev 下 React 模块一加载就抛错。
+
+  改用 <template> + 克隆后，island 由 Astro 正常产出（自带 before-hydration-url），
+  克隆进 DOM 时它会自己先加载 preamble 再 hydrate，dev / prod 都能跑；
+  同时「不点击就不连接」也天然保证了懒加载。
 */}
-{/*
-  三个面板的显隐由根节点上的 data-state 统一控制，不用 hidden 属性。
-  原因：本组件的面板需要 display: flex 居中，而 author 的 display 规则
-  会盖过浏览器默认的 [hidden] { display: none }，导致 hidden 了仍然可见
-  （实测：status 面板声称 hidden 却照常显示，并且占着 300px 高度，
-  把 mount 挤到容器外、被 overflow: hidden 裁掉，画板始终出不来）。
-  用「只让当前状态对应面板 display」的写法，既保证互斥，也不会残留占位高度。
-  可能的状态：idle（静态占位）/ loading / ready（画板）/ error。
-*/}
-<div class="wb-loader" data-state="idle" data-height={height} style={`height:${height}px`}>
+<div class="wb-loader" data-state="idle" style={`height:${height}px`}>
 	<div class="wb-placeholder">
 		<pre class="wb-ascii" aria-hidden="true">{`宿主机:  vethXXXX (插在网桥上)        Pod内: eth0
          ┌──────────┐                ┌──────────┐
@@ -52,61 +54,26 @@ const { height = 520 } = Astro.props;
 
 	<div class="wb-status" role="status">正在加载画板…</div>
 	<div class="wb-mount"></div>
+
+	{/* island 存放在模板里，点击后才克隆到 .wb-mount */}
+	<template class="wb-tpl">
+		<Whiteboard client:only="react" elements={vethPairScene} height={height} label="veth pair 拓扑：宿主机侧 vethXXXX 插在 cni0 网桥上，Pod 侧 eth0，两端由同一对 veth 连通" />
+	</template>
 </div>
 
-<script
-	type="application/json"
-	id="veth-pair-scene-data"
-	set:html={JSON.stringify(vethPairScene)}
-/>
-
 <script>
-	type State = 'idle' | 'loading' | 'ready' | 'error';
-
-	const setState = (root: HTMLElement, state: State) => {
-		root.dataset.state = state;
-	};
-
-	const boot = async (root: HTMLElement) => {
-		const mount = root.querySelector<HTMLElement>('.wb-mount');
-		const dataEl = document.getElementById('veth-pair-scene-data');
-		if (!mount || !dataEl) return;
-
-		setState(root, 'loading');
-
-		try {
-			// 动态 import：Excalidraw 相关的大 chunk 到这一刻才开始下载
-			const [{ default: Whiteboard }, { createElement }, { createRoot }] = await Promise.all([
-				import('./Whiteboard.tsx'),
-				import('react'),
-				import('react-dom/client'),
-			]);
-
-			const elements = JSON.parse(dataEl.textContent || '[]');
-			const height = Number(root.dataset.height || 520);
-
-			// 先切到 ready 再 render：容器此时已是 display:block 且有确定高度，
-			// Excalidraw 才能量到正确的画布尺寸
-			setState(root, 'ready');
-
-			createRoot(mount).render(createElement(Whiteboard, { elements, height }));
-		} catch (err) {
-			// 加载失败时退回静态占位并提示，不留下空白区域
-			console.error('画板加载失败', err);
-			setState(root, 'error');
-			// 允许重试
-			delete root.dataset.loaded;
-			const label = root.querySelector('.wb-btn-label');
-			if (label) label.textContent = '画板加载失败，点击重试';
-		}
-	};
-
 	document.querySelectorAll<HTMLElement>('.wb-loader').forEach((root) => {
-		root.querySelector('.wb-btn')?.addEventListener('click', () => {
-			// 只在首次点击时挂载，避免重复创建 React root
-			if (root.dataset.loaded === '1') return;
-			root.dataset.loaded = '1';
-			void boot(root);
+		const btn = root.querySelector('.wb-btn');
+		btn?.addEventListener('click', () => {
+			const tpl = root.querySelector<HTMLTemplateElement>('.wb-tpl');
+			const mount = root.querySelector<HTMLElement>('.wb-mount');
+			if (!tpl || !mount) return;
+
+			// 先切到 ready，让 .wb-mount 变成可见且有确定高度，
+			// island 连接后才能量到正确的画布尺寸
+			root.dataset.state = 'ready';
+			// 克隆模板内容 → island 接入 DOM → 自动加载 preamble 并 hydrate
+			mount.appendChild(tpl.content.cloneNode(true));
 		});
 	});
 </script>
@@ -128,8 +95,7 @@ const { height = 520 } = Astro.props;
 	}
 
 	.wb-loader[data-state='idle'] > .wb-placeholder,
-	.wb-loader[data-state='loading'] > .wb-status,
-	.wb-loader[data-state='error'] > .wb-placeholder {
+	.wb-loader[data-state='loading'] > .wb-status {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -187,12 +153,6 @@ const { height = 520 } = Astro.props;
 		font-weight: 400;
 		color: var(--color-text-light);
 	}
-
-	/* 失败态：提示文字转成警示色 */
-	.wb-loader[data-state='error'] .wb-btn {
-		color: #c92a2a;
-		border-color: #c92a2a;
-	}
 </style>
 
 <style is:global>
@@ -207,8 +167,11 @@ const { height = 520 } = Astro.props;
 		display: none !important;
 	}
 
-	/* Excalidraw 需要容器有确定高度才能正确初始化画布 */
+	/* astro-island 默认 display: contents，需要它撑满容器交给 Excalidraw 量尺寸 */
+	.wb-mount astro-island,
+	.wb-mount .whiteboard,
 	.wb-mount .excalidraw {
 		height: 100%;
+		display: block;
 	}
 </style>
