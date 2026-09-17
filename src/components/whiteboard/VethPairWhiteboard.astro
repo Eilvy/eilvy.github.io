@@ -21,7 +21,16 @@ const { height = 520 } = Astro.props;
   场景数据用 <script type="application/json"> 传递，
   避免把大段数据塞进内联脚本带来转义问题。
 */}
-<div class="wb-loader" data-height={height} style={`height:${height}px`}>
+{/*
+  三个面板的显隐由根节点上的 data-state 统一控制，不用 hidden 属性。
+  原因：本组件的面板需要 display: flex 居中，而 author 的 display 规则
+  会盖过浏览器默认的 [hidden] { display: none }，导致 hidden 了仍然可见
+  （实测：status 面板声称 hidden 却照常显示，并且占着 300px 高度，
+  把 mount 挤到容器外、被 overflow: hidden 裁掉，画板始终出不来）。
+  用「只让当前状态对应面板 display」的写法，既保证互斥，也不会残留占位高度。
+  可能的状态：idle（静态占位）/ loading / ready（画板）/ error。
+*/}
+<div class="wb-loader" data-state="idle" data-height={height} style={`height:${height}px`}>
 	<div class="wb-placeholder">
 		<pre class="wb-ascii" aria-hidden="true">{`宿主机:  vethXXXX (插在网桥上)        Pod内: eth0
          ┌──────────┐                ┌──────────┐
@@ -41,8 +50,8 @@ const { height = 520 } = Astro.props;
 		</button>
 	</div>
 
-	<div class="wb-status" hidden>正在加载画板…</div>
-	<div class="wb-mount" hidden></div>
+	<div class="wb-status" role="status">正在加载画板…</div>
+	<div class="wb-mount"></div>
 </div>
 
 <script
@@ -52,16 +61,18 @@ const { height = 520 } = Astro.props;
 />
 
 <script>
+	type State = 'idle' | 'loading' | 'ready' | 'error';
+
+	const setState = (root: HTMLElement, state: State) => {
+		root.dataset.state = state;
+	};
+
 	const boot = async (root: HTMLElement) => {
 		const mount = root.querySelector<HTMLElement>('.wb-mount');
-		const placeholder = root.querySelector<HTMLElement>('.wb-placeholder');
-		const status = root.querySelector<HTMLElement>('.wb-status');
 		const dataEl = document.getElementById('veth-pair-scene-data');
-		if (!mount || !placeholder || !dataEl) return;
+		if (!mount || !dataEl) return;
 
-		// 进入加载态，避免"点了没反应"的错觉
-		placeholder.hidden = true;
-		if (status) status.hidden = false;
+		setState(root, 'loading');
 
 		try {
 			// 动态 import：Excalidraw 相关的大 chunk 到这一刻才开始下载
@@ -74,20 +85,18 @@ const { height = 520 } = Astro.props;
 			const elements = JSON.parse(dataEl.textContent || '[]');
 			const height = Number(root.dataset.height || 520);
 
-			if (status) status.hidden = true;
-			mount.hidden = false;
+			// 先切到 ready 再 render：容器此时已是 display:block 且有确定高度，
+			// Excalidraw 才能量到正确的画布尺寸
+			setState(root, 'ready');
 
 			createRoot(mount).render(createElement(Whiteboard, { elements, height }));
 		} catch (err) {
 			// 加载失败时退回静态占位并提示，不留下空白区域
 			console.error('画板加载失败', err);
-			mount.hidden = true;
-			if (status) status.hidden = true;
-			placeholder.hidden = false;
-			root.dataset.loaded = '';
-			const btn = placeholder.querySelector('.wb-btn');
-			const label = placeholder.querySelector('.wb-btn-label');
-			btn?.classList.add('wb-btn--error');
+			setState(root, 'error');
+			// 允许重试
+			delete root.dataset.loaded;
+			const label = root.querySelector('.wb-btn-label');
 			if (label) label.textContent = '画板加载失败，点击重试';
 		}
 	};
@@ -110,16 +119,28 @@ const { height = 520 } = Astro.props;
 		overflow: hidden;
 	}
 
-	.wb-placeholder,
-	.wb-status {
+	/* 默认全部隐藏，由 data-state 精确点亮其中一个，保证互斥且不留占位高度 */
+	.wb-loader > .wb-placeholder,
+	.wb-loader > .wb-status,
+	.wb-loader > .wb-mount {
+		display: none;
+		height: 100%;
+	}
+
+	.wb-loader[data-state='idle'] > .wb-placeholder,
+	.wb-loader[data-state='loading'] > .wb-status,
+	.wb-loader[data-state='error'] > .wb-placeholder {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
 		gap: 1.25em;
-		min-height: 300px;
 		padding: 1.5em;
 		background-color: var(--color-bg-secondary);
+	}
+
+	.wb-loader[data-state='ready'] > .wb-mount {
+		display: block;
 	}
 
 	.wb-ascii {
@@ -167,17 +188,10 @@ const { height = 520 } = Astro.props;
 		color: var(--color-text-light);
 	}
 
-	.wb-btn--error {
+	/* 失败态：提示文字转成警示色 */
+	.wb-loader[data-state='error'] .wb-btn {
 		color: #c92a2a;
 		border-color: #c92a2a;
-	}
-
-	.wb-status {
-		color: var(--color-text-light);
-	}
-
-	.wb-mount {
-		height: 100%;
 	}
 </style>
 
@@ -193,8 +207,8 @@ const { height = 520 } = Astro.props;
 		display: none !important;
 	}
 
-	:global(.wb-mount .excalidraw) {
-		/* Excalidraw 需要容器有确定高度才能正确初始化画布 */
+	/* Excalidraw 需要容器有确定高度才能正确初始化画布 */
+	.wb-mount .excalidraw {
 		height: 100%;
 	}
 </style>
