@@ -30,7 +30,7 @@ type SkeletonElement = {
 	fontFamily?: number;
 	textAlign?: string;
 	verticalAlign?: string;
-	label?: { text: string; fontSize?: number };
+	label?: { text: string; fontSize?: number; fontFamily?: number };
 	points?: [number, number][];
 	startBinding?: unknown;
 	endBinding?: unknown;
@@ -42,18 +42,46 @@ type SkeletonElement = {
 
 interface Props {
 	/**
-	 * 浅色 / 暗色两套场景元素骨架。
+	 * 场景元素骨架（纯数据）。
 	 *
-	 * 之所以传两份静态数据而不是一个 build(isDark) 工厂函数：
-	 * client:only 岛在构建期会把 props 序列化成 JSON 交给浏览器，
-	 * 函数无法被序列化（实测会变成 null，画布直接空白）。
-	 * 因此这里只传纯数据，由组件内部按当前主题挑选。
+	 * 必须是可 JSON 序列化的静态数据：client:only 岛在构建期会把 props
+	 * 序列化后交给浏览器，函数无法被序列化（实测会变成 null，画布空白），
+	 * 所以不能传 build(isDark) 之类的工厂函数。
+	 *
+	 * 只需传「浅色主题」一套配色 —— 暗色由 Excalidraw 自己反相画布完成，
+	 * 详见 veth-pair.scene.ts 顶部说明。
 	 */
-	elements: { light: SkeletonElement[]; dark: SkeletonElement[] };
+	elements: SkeletonElement[];
 	/** 画布高度（px） */
 	height?: number;
 	/** 图表说明，用于无障碍标签 */
 	label?: string;
+}
+
+/**
+ * 跟随站点暗色主题，返回 Excalidraw 需要的 theme 值。
+ *
+ * 站点在 <html> 上加减 .dark 类（含跟随系统与手动切换），
+ * 这里监听该类名变化。Excalidraw 会在暗色下给画布套
+ * invert 滤镜，因此元素数据无需区分主题，只有这个 theme 开关要跟着变。
+ */
+function useSiteTheme(): 'light' | 'dark' {
+	// 惰性初始值同步读一次 DOM：组件是 client:only，挂载时 document 已就绪。
+	// 读晚了会让画布先用浅色渲染再翻转，出现闪白。
+	const [isDark, setIsDark] = useState(() =>
+		typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+	);
+
+	useEffect(() => {
+		const root = document.documentElement;
+		const sync = () => setIsDark(root.classList.contains('dark'));
+		sync();
+		const ob = new MutationObserver(sync);
+		ob.observe(root, { attributes: true, attributeFilter: ['class'] });
+		return () => ob.disconnect();
+	}, []);
+
+	return isDark ? 'dark' : 'light';
 }
 
 /**
@@ -67,54 +95,10 @@ interface Props {
  */
 export default function Whiteboard({ elements, height = 420, label }: Props) {
 	const apiRef = useRef<any>(null);
-
-	/*
-	 * 跟随站点主题。
-	 *
-	 * 初始值直接同步读一次 DOM（组件是 client:only，挂载时 document 已可用），
-	 * 不要先给 false 再在 useEffect 里纠正：Excalidraw 只认挂载那一刻的
-	 * initialData，若首帧用的是浅色场景，之后即使 state 变了也不会重画，
-	 * 会出现「暗色画布 + 深色文字」几乎看不见的情况。
-	 *
-	 * 之后用 MutationObserver 监听 <html> 的 class 变化，
-	 * 覆盖「跟随系统」与「手动点切换」两种运行期切换。
-	 */
-	const [isDark, setIsDark] = useState(
-		() => typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
-	);
-
-	useEffect(() => {
-		const root = document.documentElement;
-		const sync = () => setIsDark(root.classList.contains('dark'));
-		sync();
-		const ob = new MutationObserver(sync);
-		ob.observe(root, { attributes: true, attributeFilter: ['class'] });
-		return () => ob.disconnect();
-	}, []);
+	const theme = useSiteTheme();
 
 	// 骨架 → 完整元素，省去手写 id / seed / version / 绑定关系等字段
-	const scene = useMemo(
-		() => convertToExcalidrawElements((isDark ? elements.dark : elements.light) as never),
-		[elements, isDark]
-	);
-
-	/*
-	 * 运行期切换主题时同步替换画布内容。
-	 *
-	 * Excalidraw 只在首次挂载读取 initialData，theme 变化不会重画元素，
-	 * 而两种主题下的文字颜色不同，所以主题一变就得主动 updateScene 把
-	 * 对应当套场景写进去（顺带保留原有缩放/滚动，避免视角跳动）。
-	 *
-	 * 首帧跳过：此时内容和 theme 已经是配套的，重复写一次纯属浪费。
-	 */
-	const firstRun = useRef(true);
-	useEffect(() => {
-		if (firstRun.current) {
-			firstRun.current = false;
-			return;
-		}
-		apiRef.current?.updateScene({ elements: scene });
-	}, [scene]);
+	const scene = useMemo(() => convertToExcalidrawElements(elements as never), [elements]);
 
 	/*
 	 * 二次适配视口。
@@ -146,10 +130,9 @@ export default function Whiteboard({ elements, height = 420, label }: Props) {
 				excalidrawAPI={(api: unknown) => {
 					apiRef.current = api;
 				}}
-				initialData={{ elements: scene }}
-				// 跟随站点主题：站点用 html.dark 切换暗色，这里同步给画布，
-				// 否则暗色页面里会嵌一块亮白的画布，非常突兀
-				theme={isDark ? 'dark' : 'light'}
+				initialData={{ elements: scene, scrollToContent: true }}
+				// 跟随站点主题，避免暗色页面里嵌一块亮白画布
+				theme={theme}
 				viewModeEnabled
 				gridModeEnabled={false}
 				autoFocus={false}

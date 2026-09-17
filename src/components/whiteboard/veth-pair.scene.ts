@@ -1,12 +1,23 @@
 /**
  * 「veth pair 拓扑」画板场景（只读）。
  *
- * 对应 network-packet-flow-osi.md 中原来的 ASCII 图：
+ * 对应 network-packet-flow-osi 中原来的 ASCII 图：
  * 宿主机侧的 veth 端插在网桥上，Pod 侧是 eth0，两端由同一对 veth 连通。
  *
  * 坐标按 Excalidraw 的画布坐标手写，y 轴向下。
  * 这里只写「骨架」字段，id / seed / version / 绑定关系由
  * convertToExcalidrawElements 自动补全。
+ *
+ * ── 关于配色（重要：不要为暗色另准备一套颜色）──
+ * 只用这一套「浅色主题」配色。暗色模式不需要另写：
+ * Excalidraw 在 theme--dark 下会给画布整体套
+ *   filter: invert(93%) hue-rotate(180deg)
+ * （见其 index.css 的 .excalidraw.theme--dark canvas）。
+ * 深色字 #1e1e1e 会被自动反相成亮色（约 211），白底反相成深底，
+ * 这正是想要的效果。
+ *
+ * 若额外为暗色准备「浅色文字」，会被再反相一次变回深色，
+ * 反而出现「暗底 + 暗字」看不清的情况（实测踩过这个坑）。
  */
 
 const C = {
@@ -15,18 +26,9 @@ const C = {
 	pod: '#b2f2bb', // Pod 侧
 	bridge: '#ffec99', // 网桥
 	link: '#e03131', // 数据通道
+	text: '#1e1e1e',
+	muted: '#868e96',
 };
-
-/**
- * 直接画在画布上的文字颜色。
- *
- * 矩形内部的标签不用管：它们落在浅色填充上，深色字在两种主题下都清晰。
- * 但标题/副标题/说明这类文字是贴在画布背景上的，
- * 暗色主题下画布背景本身就是深色，深色字会「看不见」，
- * 因此这些文字的颜色必须按主题切换。
- */
-const textOnCanvas = (isDark: boolean) => (isDark ? '#e9ecef' : '#1e1e1e');
-const mutedOnCanvas = (isDark: boolean) => (isDark ? '#adb5bd' : '#868e96');
 
 /**
  * 使用 Excalidraw 内置的「本地字体」Helvetica（fontFamily: 2）。
@@ -46,7 +48,7 @@ const podEth0 = { x: 480, y: 120, width: 190, height: 90 };
 /** 网桥 */
 const bridge = { x: 60, y: 320, width: 190, height: 80 };
 
-const buildVethPairScene = (isDark: boolean) => [
+export const vethPairScene = [
 	// ── 标题
 	{
 		type: 'text',
@@ -55,7 +57,7 @@ const buildVethPairScene = (isDark: boolean) => [
 		text: 'veth pair：一根线两个头',
 		fontSize: 24,
 		fontFamily: FONT_LOCAL,
-		strokeColor: textOnCanvas(isDark),
+		strokeColor: C.text,
 	},
 	{
 		type: 'text',
@@ -64,7 +66,7 @@ const buildVethPairScene = (isDark: boolean) => [
 		text: '宿主机侧 vethXXXX 插在网桥，Pod 侧即 eth0',
 		fontSize: 13,
 		fontFamily: FONT_LOCAL,
-		strokeColor: mutedOnCanvas(isDark),
+		strokeColor: C.muted,
 	},
 
 	// ── 两端网卡
@@ -93,7 +95,7 @@ const buildVethPairScene = (isDark: boolean) => [
 		label: { text: 'eth0\n（Pod 侧 pod 端）', fontSize: 16, fontFamily: FONT_LOCAL },
 	},
 
-	// ── 中间的虚拟数据通道
+	// ─ 中间的虚拟数据通道
 	{
 		type: 'arrow',
 		x: hostVeth.x + hostVeth.width,
@@ -151,7 +153,7 @@ const buildVethPairScene = (isDark: boolean) => [
 		text: 'host 端插在网桥上',
 		fontSize: 14,
 		fontFamily: FONT_LOCAL,
-		strokeColor: mutedOnCanvas(isDark),
+		strokeColor: C.muted,
 	},
 
 	// ── 说明
@@ -162,18 +164,6 @@ const buildVethPairScene = (isDark: boolean) => [
 		text: '数据从一端写入，另一端立即可读 —— 内核里是一对相连的虚拟网卡',
 		fontSize: 14,
 		fontFamily: FONT_LOCAL,
-		strokeColor: mutedOnCanvas(isDark),
+		strokeColor: C.muted,
 	},
 ];
-
-/**
- * 浅色 / 暗色两套场景。
- *
- * 只差「贴在画布上的文字颜色」——暗色画布必须配浅色字。
- * 这里在构建期就把两套数据算好，作为纯 JSON 传给浏览器端组件
- * （client:only 岛的 props 不能被序列化函数，见 Whiteboard.tsx 注释）。
- */
-export const vethPairScenes = {
-	light: buildVethPairScene(false),
-	dark: buildVethPairScene(true),
-};

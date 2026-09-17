@@ -1,6 +1,6 @@
 ---
 import Whiteboard from './Whiteboard.tsx';
-import { vethPairScenes } from './veth-pair.scene';
+import { vethPairScene } from './veth-pair.scene';
 
 interface Props {
 	height?: number;
@@ -9,32 +9,192 @@ interface Props {
 const { height = 520 } = Astro.props;
 ---
 
-<Whiteboard
-	client:only="react"
-	elements={vethPairScenes}
-	height={height}
-	label="veth pair 拓扑：宿主机侧 vethXXXX 插在 cni0 网桥上，Pod 侧 eth0，两端由同一对 veth 连通"
+{/*
+  点击加载（click-to-load）。
+
+  不在 MDX 里直接写 <Whiteboard client:only="react" /> 的原因：
+  Excalidraw 主 chunk 约 1.1MB（gzip 约 361KB），client:only 会让它
+  在打开文章时就下载并执行 —— 哪怕读者根本不看这张图。
+  这里改为：先只渲染静态占位（纯 HTML/CSS，0 JS），
+  读者点击后才动态 import React 组件。
+
+  场景数据用 <script type="application/json"> 传递，
+  避免把大段数据塞进内联脚本带来转义问题。
+*/}
+<div class="wb-loader" data-height={height} style={`height:${height}px`}>
+	<div class="wb-placeholder">
+		<pre class="wb-ascii" aria-hidden="true">{`宿主机:  vethXXXX (插在网桥上)        Pod内: eth0
+         ┌──────────┐                ┌──────────┐
+         │  veth pair │══════════════│  veth pair│
+         │  (host端) │   虚拟数据通道   │  (pod端) │
+         └──────────┘                └──────────┘
+              │
+        插在 cni0/docker0 网桥上`}</pre>
+
+		<button type="button" class="wb-btn">
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+				<circle cx="11" cy="11" r="7"></circle>
+				<path d="M21 21l-4.35-4.35"></path>
+			</svg>
+			<span class="wb-btn-label">点击加载交互式画板</span>
+			<span class="wb-hint">可缩放 / 平移 · 约 1MB，按需加载</span>
+		</button>
+	</div>
+
+	<div class="wb-status" hidden>正在加载画板…</div>
+	<div class="wb-mount" hidden></div>
+</div>
+
+<script
+	type="application/json"
+	id="veth-pair-scene-data"
+	set:html={JSON.stringify(vethPairScene)}
 />
 
+<script>
+	const boot = async (root: HTMLElement) => {
+		const mount = root.querySelector<HTMLElement>('.wb-mount');
+		const placeholder = root.querySelector<HTMLElement>('.wb-placeholder');
+		const status = root.querySelector<HTMLElement>('.wb-status');
+		const dataEl = document.getElementById('veth-pair-scene-data');
+		if (!mount || !placeholder || !dataEl) return;
+
+		// 进入加载态，避免"点了没反应"的错觉
+		placeholder.hidden = true;
+		if (status) status.hidden = false;
+
+		try {
+			// 动态 import：Excalidraw 相关的大 chunk 到这一刻才开始下载
+			const [{ default: Whiteboard }, { createElement }, { createRoot }] = await Promise.all([
+				import('./Whiteboard.tsx'),
+				import('react'),
+				import('react-dom/client'),
+			]);
+
+			const elements = JSON.parse(dataEl.textContent || '[]');
+			const height = Number(root.dataset.height || 520);
+
+			if (status) status.hidden = true;
+			mount.hidden = false;
+
+			createRoot(mount).render(createElement(Whiteboard, { elements, height }));
+		} catch (err) {
+			// 加载失败时退回静态占位并提示，不留下空白区域
+			console.error('画板加载失败', err);
+			mount.hidden = true;
+			if (status) status.hidden = true;
+			placeholder.hidden = false;
+			root.dataset.loaded = '';
+			const btn = placeholder.querySelector('.wb-btn');
+			const label = placeholder.querySelector('.wb-btn-label');
+			btn?.classList.add('wb-btn--error');
+			if (label) label.textContent = '画板加载失败，点击重试';
+		}
+	};
+
+	document.querySelectorAll<HTMLElement>('.wb-loader').forEach((root) => {
+		root.querySelector('.wb-btn')?.addEventListener('click', () => {
+			// 只在首次点击时挂载，避免重复创建 React root
+			if (root.dataset.loaded === '1') return;
+			root.dataset.loaded = '1';
+			void boot(root);
+		});
+	});
+</script>
+
 <style>
-	/* client:only 组件在挂载前无内容，给个占位高度避免布局跳动 */
-	:global(.whiteboard) {
+	.wb-loader {
 		margin: 1.5em 0;
 		border: 1px solid var(--color-border);
 		border-radius: 8px;
 		overflow: hidden;
-		/* 暗色主题下画布也是深色，避免加载瞬间闪白 */
+	}
+
+	.wb-placeholder,
+	.wb-status {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 1.25em;
+		min-height: 300px;
+		padding: 1.5em;
 		background-color: var(--color-bg-secondary);
 	}
 
+	.wb-ascii {
+		margin: 0;
+		max-width: 100%;
+		overflow-x: auto;
+		font-family: var(--font-mono);
+		font-size: 0.8125rem;
+		line-height: 1.5;
+		color: var(--color-text-light);
+		background: none;
+		border: none;
+		padding: 0;
+	}
+
+	.wb-btn {
+		display: inline-flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.35em;
+		padding: 0.75em 1.5em;
+		font-size: 0.9375rem;
+		font-weight: 500;
+		color: var(--color-primary);
+		background-color: var(--color-bg);
+		border: 1px solid var(--color-border);
+		border-radius: 9999px;
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+
+	.wb-btn:hover {
+		border-color: var(--color-primary);
+		background-color: var(--color-primary-light);
+	}
+
+	.wb-btn svg {
+		width: 20px;
+		height: 20px;
+	}
+
+	.wb-hint {
+		font-size: 0.75rem;
+		font-weight: 400;
+		color: var(--color-text-light);
+	}
+
+	.wb-btn--error {
+		color: #c92a2a;
+		border-color: #c92a2a;
+	}
+
+	.wb-status {
+		color: var(--color-text-light);
+	}
+
+	.wb-mount {
+		height: 100%;
+	}
+</style>
+
+<style is:global>
 	/*
 	 * Excalidraw 的汉堡菜单按钮在 viewMode 下并未被它自带的样式隐藏
 	 * （.excalidraw--view-mode 只调整了 .App-menu 的布局），
 	 * 会在左下角留下一个点不开的悬浮按钮。这里显式去掉。
 	 */
-	:global(.whiteboard .main-menu-trigger),
-	:global(.whiteboard .App-menu_top),
-	:global(.whiteboard .App-bottom-bar) {
+	.wb-mount .main-menu-trigger,
+	.wb-mount .App-menu_top,
+	.wb-mount .App-bottom-bar {
 		display: none !important;
+	}
+
+	:global(.wb-mount .excalidraw) {
+		/* Excalidraw 需要容器有确定高度才能正确初始化画布 */
+		height: 100%;
 	}
 </style>
