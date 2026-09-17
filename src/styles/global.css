@@ -150,6 +150,186 @@ html.dark *:focus-visible {
 	position: relative;
 }
 
+/* ===== 画板：内嵌视图与全屏查看器 ===== */
+
+/*
+ * 内嵌视图。
+ *
+ * 定位在「插图」而不是「可操作控件」：
+ * - 画布本身不吃滚轮（滚轮事件在 JS 里被拦下放行给页面），
+ *   否则读者滚页面时会把图滚跑；
+ * - 指针样式用 zoom-in 暗示"可以点开看大图"。
+ */
+.wb-inline {
+	position: relative;
+	cursor: zoom-in;
+}
+
+.wb-inline .whiteboard {
+	height: 100%;
+}
+
+/*
+ * "点击放大"提示。
+ * 只在悬停/聚焦时淡入，平时不干扰阅读；触屏设备没有 hover，
+ * 用 @media (hover: none) 让它常显。
+ */
+.wb-zoom-hint {
+	position: absolute;
+	right: 0.75em;
+	bottom: 0.75em;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35em;
+	padding: 0.35em 0.8em;
+	font-size: 0.8125rem;
+	color: var(--color-text-light);
+	background-color: var(--color-bg);
+	border: 1px solid var(--color-border);
+	border-radius: 9999px;
+	opacity: 0;
+	transition: opacity 0.2s;
+	pointer-events: none;
+}
+
+.wb-zoom-hint svg {
+	width: 14px;
+	height: 14px;
+}
+
+.wb-inline:hover .wb-zoom-hint,
+.wb-inline:focus-visible .wb-zoom-hint {
+	opacity: 1;
+}
+
+@media (hover: none) {
+	.wb-zoom-hint {
+		opacity: 1;
+	}
+}
+
+/*
+ * 隐藏 Excalidraw 自带的工具栏 / 缩放条（viewMode 下它仍会渲染一条）。
+ * 内嵌与弹窗都要隐藏：内嵌是纯插图，弹窗用的是标题栏里那套自绘控制。
+ * 放在 global.css（而非组件内的 is:global）是因为弹窗 DOM 由 React
+ * 在运行时创建，组件样式在构建期不一定覆盖到。
+ */
+.wb-mount .main-menu-trigger,
+.wb-mount .App-menu_top,
+.wb-mount .App-bottom-bar,
+.wb-mount .App-menu_bottom,
+.wb-mount .layer-ui__wrapper__footer,
+.wb-modal .main-menu-trigger,
+.wb-modal .App-menu_top,
+.wb-modal .App-bottom-bar,
+.wb-modal .App-menu_bottom,
+.wb-modal .layer-ui__wrapper__footer {
+	display: none !important;
+}
+
+/* 全屏查看器 */
+.wb-modal {
+	position: fixed;
+	inset: 0;
+	z-index: 1000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 2em;
+	background-color: rgba(0, 0, 0, 0.6);
+	backdrop-filter: blur(2px);
+}
+
+.wb-modal__panel {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	height: 100%;
+	max-width: 1400px;
+	overflow: hidden;
+	background-color: var(--color-bg);
+	border: 1px solid var(--color-border);
+	border-radius: 12px;
+	box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.wb-modal__bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1em;
+	padding: 0.6em 0.75em 0.6em 1.25em;
+	border-bottom: 1px solid var(--color-border);
+	background-color: var(--color-bg-secondary);
+}
+
+.wb-modal__title {
+	font-size: 0.9375rem;
+	font-weight: 600;
+	color: var(--color-text);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.wb-modal__tools {
+	display: flex;
+	align-items: center;
+	gap: 0.35em;
+	flex-shrink: 0;
+}
+
+.wb-modal__tools button {
+	min-width: 2em;
+	height: 2em;
+	padding: 0 0.6em;
+	font-size: 0.875rem;
+	color: var(--color-text);
+	background-color: var(--color-bg);
+	border: 1px solid var(--color-border);
+	border-radius: 6px;
+	cursor: pointer;
+	transition: all 0.15s;
+}
+
+.wb-modal__tools button:hover {
+	border-color: var(--color-primary);
+	color: var(--color-primary);
+}
+
+.wb-modal__zoom {
+	min-width: 3.5em;
+	font-size: 0.8125rem;
+	text-align: center;
+	color: var(--color-text-light);
+	font-variant-numeric: tabular-nums;
+}
+
+.wb-modal__close {
+	font-size: 1.1rem !important;
+	line-height: 1;
+}
+
+.wb-modal__body {
+	flex: 1;
+	min-height: 0;
+}
+
+.wb-modal__body .whiteboard {
+	height: 100%;
+}
+
+@media (max-width: 768px) {
+	.wb-modal {
+		padding: 0;
+	}
+
+	.wb-modal__panel {
+		border-radius: 0;
+		border: none;
+	}
+}
+
 /*
  * 带行号的代码块
  *

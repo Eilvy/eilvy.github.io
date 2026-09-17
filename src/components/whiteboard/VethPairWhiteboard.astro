@@ -3,10 +3,13 @@ import Whiteboard from './Whiteboard.tsx';
 import { vethPairScene } from './veth-pair.scene';
 
 interface Props {
+	/** 点击前占位区高度（px）。刻意比展开后小，避免正文里一个空box占太大篇幅 */
+	placeholderHeight?: number;
+	/** 加载后内嵌画布高度（px） */
 	height?: number;
 }
 
-const { height = 520 } = Astro.props;
+const { placeholderHeight = 240, height = 380 } = Astro.props;
 ---
 
 {/*
@@ -18,8 +21,8 @@ const { height = 520 } = Astro.props;
   模板内容不参与渲染、不会连接 DOM，因此 island 的 connectedCallback
   不会触发、组件也不会被 import，直到读者点击后把它克隆进页面。
 
-  ── 为什么不用手动 import('./Whiteboard.tsx') ──
-  一开始我是自己 document.createElement + import() 挂载的，生产环境正常，
+  ─ 为什么不用手动 import('./Whiteboard.tsx') ─
+  一开始是自己 document.createElement + import() 挂载的，生产环境正常，
   但 `astro dev` 下必然失败，报：
     @vitejs/plugin-react can't detect preamble. Something is wrong.
   原因是 Vite 的 React Fast Refresh 需要一个 preamble（$RefreshReg$ 等），
@@ -32,45 +35,40 @@ const { height = 520 } = Astro.props;
   克隆进 DOM 时它会自己先加载 preamble 再 hydrate，dev / prod 都能跑；
   同时「不点击就不连接」也天然保证了懒加载。
 */}
-<div class="wb-loader" data-state="idle" style={`height:${height}px`}>
-	<div class="wb-placeholder">
-		<pre class="wb-ascii" aria-hidden="true">{`宿主机:  vethXXXX (插在网桥上)        Pod内: eth0
-         ┌──────────┐                ┌──────────┐
-         │  veth pair │══════════════│  veth pair│
-         │  (host端) │   虚拟数据通道   │  (pod端) │
-         └──────────┘                └──────────┘
-              │
-        插在 cni0/docker0 网桥上`}</pre>
-
+<div class="wb-loader" data-state="idle" data-placeholder-height={placeholderHeight}>
+	<div class="wb-placeholder" style={`min-height:${placeholderHeight}px`}>
 		<button type="button" class="wb-btn">
 			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
 				<circle cx="11" cy="11" r="7"></circle>
 				<path d="M21 21l-4.35-4.35"></path>
 			</svg>
-			<span class="wb-btn-label">点击加载交互式画板</span>
-			<span class="wb-hint">可缩放 / 平移 · 约 1MB，按需加载</span>
+			<span class="wb-btn-label">点击加载拓扑图</span>
+			<span class="wb-hint">约 1MB，按需加载</span>
 		</button>
 	</div>
 
-	<div class="wb-status" role="status">正在加载画板…</div>
+	<div class="wb-status" role="status">正在加载…</div>
 	<div class="wb-mount"></div>
 
 	{/* island 存放在模板里，点击后才克隆到 .wb-mount */}
 	<template class="wb-tpl">
-		<Whiteboard client:only="react" elements={vethPairScene} height={height} label="veth pair 拓扑：宿主机侧 vethXXXX 插在 cni0 网桥上，Pod 侧 eth0，两端由同一对 veth 连通" />
+		<Whiteboard
+			client:only="react"
+			elements={vethPairScene}
+			height={height}
+			label="veth pair 拓扑：宿主机侧 vethXXXX 插在 cni0 网桥上，Pod 侧 eth0，两端由同一对 veth 连通"
+		/>
 	</template>
 </div>
 
 <script>
 	document.querySelectorAll<HTMLElement>('.wb-loader').forEach((root) => {
-		const btn = root.querySelector('.wb-btn');
-		btn?.addEventListener('click', () => {
+		root.querySelector('.wb-btn')?.addEventListener('click', () => {
 			const tpl = root.querySelector<HTMLTemplateElement>('.wb-tpl');
 			const mount = root.querySelector<HTMLElement>('.wb-mount');
 			if (!tpl || !mount) return;
 
-			// 先切到 ready，让 .wb-mount 变成可见且有确定高度，
-			// island 连接后才能量到正确的画布尺寸
+			// 先切到 ready，让 .wb-mount 变成可见，island 连接后才能量到正确尺寸
 			root.dataset.state = 'ready';
 			// 克隆模板内容 → island 接入 DOM → 自动加载 preamble 并 hydrate
 			mount.appendChild(tpl.content.cloneNode(true));
@@ -91,7 +89,6 @@ const { height = 520 } = Astro.props;
 	.wb-loader > .wb-status,
 	.wb-loader > .wb-mount {
 		display: none;
-		height: 100%;
 	}
 
 	.wb-loader[data-state='idle'] > .wb-placeholder,
@@ -100,8 +97,8 @@ const { height = 520 } = Astro.props;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 1.25em;
-		padding: 1.5em;
+		gap: 0.5em;
+		padding: 1.25em;
 		background-color: var(--color-bg-secondary);
 	}
 
@@ -109,26 +106,13 @@ const { height = 520 } = Astro.props;
 		display: block;
 	}
 
-	.wb-ascii {
-		margin: 0;
-		max-width: 100%;
-		overflow-x: auto;
-		font-family: var(--font-mono);
-		font-size: 0.8125rem;
-		line-height: 1.5;
-		color: var(--color-text-light);
-		background: none;
-		border: none;
-		padding: 0;
-	}
-
+	/* 占位期的按钮做得克制些：不抢正文注意力 */
 	.wb-btn {
 		display: inline-flex;
-		flex-direction: column;
 		align-items: center;
-		gap: 0.35em;
-		padding: 0.75em 1.5em;
-		font-size: 0.9375rem;
+		gap: 0.5em;
+		padding: 0.5em 1.1em;
+		font-size: 0.875rem;
 		font-weight: 500;
 		color: var(--color-primary);
 		background-color: var(--color-bg);
@@ -144,8 +128,8 @@ const { height = 520 } = Astro.props;
 	}
 
 	.wb-btn svg {
-		width: 20px;
-		height: 20px;
+		width: 16px;
+		height: 16px;
 	}
 
 	.wb-hint {
@@ -168,10 +152,8 @@ const { height = 520 } = Astro.props;
 	}
 
 	/* astro-island 默认 display: contents，需要它撑满容器交给 Excalidraw 量尺寸 */
-	.wb-mount astro-island,
-	.wb-mount .whiteboard,
-	.wb-mount .excalidraw {
-		height: 100%;
+	.wb-mount astro-island {
 		display: block;
+		height: 100%;
 	}
 </style>

@@ -87,21 +87,33 @@ function useSiteTheme(): 'light' | 'dark' {
 /**
  * 只读画板（Excalidraw）。
  *
- * 仅作「查看器」使用：开启 viewModeEnabled 后不渲染工具栏，
- * 读者只能平移 / 缩放画布，无法编辑，因此不需要任何持久化后端。
+ * 两种使用方式：
+ * - mode="inline"：文章内嵌插图，尺寸含蓄、不响应滚轮与拖拽，
+ *   读者滚页面时不会被画布"抢走"滚动；
+ * - mode="dialog"：点击后弹出的全屏查看器，可缩放/平移/适应窗口。
  *
- * 调用方须以 client:only="react" 挂载 —— Excalidraw 依赖
- * canvas / window 等浏览器 API，不能在构建期做 SSR。
+ * 两者共用同一份场景数据，各自持有独立的 Excalidraw 实例。
  */
-export default function Whiteboard({ elements, height = 420, label }: Props) {
-	const apiRef = useRef<any>(null);
-	const theme = useSiteTheme();
+type Mode = 'inline' | 'dialog';
 
-	// 骨架 → 完整元素，省去手写 id / seed / version / 绑定关系等字段
+interface ViewerProps {
+	elements: SkeletonElement[];
+	theme: 'light' | 'dark';
+	mode: Mode;
+	height?: number;
+	label?: string;
+	/** 仅 dialog 用：缩放控制需要拿到 api */
+	apiRef?: { current: any };
+}
+
+function Viewer({ elements, theme, mode, height, label, apiRef }: ViewerProps) {
+	const localRef = useRef<any>(null);
+	const ref = apiRef ?? localRef;
+
 	const scene = useMemo(() => convertToExcalidrawElements(elements as never), [elements]);
 
 	/*
-	 * 二次适配视口。
+	 * 首帧适配视口。
 	 *
 	 * initialData.scrollToContent 在挂载瞬间就计算了「适应内容」的缩放，
 	 * 此时字体还没就绪（Excalidraw 的字体是异步加载的），
@@ -113,31 +125,33 @@ export default function Whiteboard({ elements, height = 420, label }: Props) {
 		let cancelled = false;
 		const refit = () => {
 			if (cancelled) return;
-			apiRef.current?.scrollToContent(scene, { fitToViewport: true, viewportZoomFactor: 0.9 });
+			ref.current?.scrollToContent(scene, { fitToViewport: true, viewportZoomFactor: 0.9 });
 		};
 		(document as any).fonts?.ready?.then(refit) ?? refit();
-		// 兜底：个别浏览器 fonts.ready 触发较早，再补一次
 		const t = window.setTimeout(refit, 300);
 		return () => {
 			cancelled = true;
 			window.clearTimeout(t);
 		};
-	}, [scene]);
+	}, [scene, ref]);
 
 	return (
-		<div className="whiteboard" style={{ height }} role="img" aria-label={label}>
+		<div
+			className={`whiteboard whiteboard--${mode}`}
+			style={height ? { height } : undefined}
+			role="img"
+			aria-label={label}
+		>
 			<Excalidraw
 				excalidrawAPI={(api: unknown) => {
-					apiRef.current = api;
+					ref.current = api;
 				}}
 				initialData={{ elements: scene, scrollToContent: true }}
-				// 跟随站点主题，避免暗色页面里嵌一块亮白画布
 				theme={theme}
 				viewModeEnabled
 				gridModeEnabled={false}
 				autoFocus={false}
 				handleKeyboardGlobally={false}
-				// 只读场景不需要这些入口
 				UIOptions={{
 					canvasActions: {
 						loadScene: false,
@@ -148,5 +162,168 @@ export default function Whiteboard({ elements, height = 420, label }: Props) {
 				}}
 			/>
 		</div>
+	);
+}
+
+/**
+ * 挂载时临时屏蔽画布的滚轮行为。
+ *
+ * Excalidraw 的 handleWheel 只要事件目标是 canvas 就会 preventDefault，
+ * 于是「滚页面」变成了「画面滚动」，在文章里很违和。
+ * 这里用捕获阶段监听把 wheel 拦下并放行给页面默认行为：
+ * 只 stopPropagation（阻止到达 Excalidraw 的 handler），不 preventDefault，
+ * 页面照常滚动。
+ *
+ * 只在 inline 模式下启用；dialog 里画布是主角，保留原生缩放/平移手感。
+ */
+function usePageScrollWheel(containerRef: { current: HTMLDivElement | null }) {
+	useEffect(() => {
+		const el = containerRef.current;
+		if (!el) return;
+		const onWheel = (e: WheelEvent) => {
+			e.stopPropagation();
+		};
+		// capture 阶段插入，先于 Excalidraw 的冒泡监听
+		el.addEventListener('wheel', onWheel, { capture: true });
+		return () => el.removeEventListener('wheel', onWheel, { capture: true } as any);
+	}, [containerRef]);
+}
+
+/**
+ * 内嵌画板 + 点击放大的组合。
+ *
+ * 内嵌部分只做静态展示（不响应滚轮、不响应拖拽），点击后打开对话框查看，
+ * 在对话框里才提供缩放/平移/适应窗口。这样把"阅读流"和"操作画布"分开，
+ * 避免在正文里误触把页面滚走或把图拖跑。
+ */
+export default function Whiteboard({ elements, height = 300, label }: Props) {
+	const theme = useSiteTheme();
+	const inlineRef = useRef<HTMLDivElement>(null);
+	const dialogApiRef = useRef<any>(null);
+	const [open, setOpen] = useState(false);
+	const [zoom, setZoom] = useState(1);
+
+	// 内嵌画布：滚轮交还给页面
+	usePageScrollWheel(inlineRef);
+
+	// 打开时锁定页面滚动；关闭时恢复
+	useEffect(() => {
+		if (!open) return;
+		const prev = document.body.style.overflow;
+		document.body.style.overflow = 'hidden';
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') setOpen(false);
+		};
+		window.addEventListener('keydown', onKey);
+		return () => {
+			document.body.style.overflow = prev;
+			window.removeEventListener('keydown', onKey);
+		};
+	}, [open]);
+
+	// 对话框里缩放变化时同步按钮可用态
+	useEffect(() => {
+		if (!open) return;
+		const t = window.setInterval(() => {
+			const z = dialogApiRef.current?.getAppState?.().zoom?.value;
+			if (typeof z === 'number') setZoom(z);
+		}, 300);
+		return () => window.clearInterval(t);
+	}, [open]);
+
+	const zoomBy = (factor: number) => {
+		const api = dialogApiRef.current;
+		if (!api) return;
+		const app = api.getAppState();
+		api.updateScene({ appState: { zoom: { value: app.zoom.value * factor } } });
+	};
+
+	const fit = () => {
+		dialogApiRef.current?.scrollToContent(undefined, {
+			fitToViewport: true,
+			viewportZoomFactor: 0.9,
+		});
+	};
+
+	return (
+		<>
+			{/*
+			  内嵌载体：套一个按钮语义的容器，提示"可点击放大"。
+			  用 button 会带来默认样式与内部交互冲突，这里用 div + role/tabIndex，
+			  键盘回车/空格也能触发。
+			*/}
+			<div
+				ref={inlineRef}
+				className="wb-inline"
+				role="button"
+				tabIndex={0}
+				aria-label={`${label ?? '插图'}（点击放大查看）`}
+				onClick={() => setOpen(true)}
+				onKeyDown={(e) => {
+					if (e.key === 'Enter' || e.key === ' ') {
+						e.preventDefault();
+						setOpen(true);
+					}
+				}}
+			>
+				<Viewer elements={elements} theme={theme} mode="inline" height={height} label={label} />
+				<span className="wb-zoom-hint" aria-hidden="true">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+						<circle cx="11" cy="11" r="7" />
+						<path d="M21 21l-4.35-4.35M11 8v6M8 11h6" />
+					</svg>
+					点击放大
+				</span>
+			</div>
+
+			{open && (
+				<div
+					className="wb-modal"
+					role="dialog"
+					aria-modal="true"
+					aria-label={label ?? '画板'}
+					onClick={(e) => {
+						// 点遮罩关闭；点画布本体不关闭
+						if (e.target === e.currentTarget) setOpen(false);
+					}}
+				>
+					<div className="wb-modal__panel">
+						<header className="wb-modal__bar">
+							<span className="wb-modal__title">{label ?? '画板'}</span>
+							<div className="wb-modal__tools">
+								<button type="button" onClick={() => zoomBy(1 / 1.2)} title="缩小" aria-label="缩小">
+									−
+								</button>
+								<span className="wb-modal__zoom">{Math.round(zoom * 100)}%</span>
+								<button type="button" onClick={() => zoomBy(1.2)} title="放大" aria-label="放大">
+									+
+								</button>
+								<button type="button" onClick={fit} title="适应窗口" aria-label="适应窗口">
+									适应
+								</button>
+								<button
+									type="button"
+									className="wb-modal__close"
+									onClick={() => setOpen(false)}
+									title="关闭"
+									aria-label="关闭"
+								>
+									×
+								</button>
+							</div>
+						</header>
+						<div className="wb-modal__body">
+							<Viewer
+								elements={elements}
+								theme={theme}
+								mode="dialog"
+								label={label}
+								apiRef={dialogApiRef}
+							/>
+						</div>
+					</div>
+				</div>
+			)}
+		</>
 	);
 }
