@@ -150,6 +150,65 @@ html.dark *:focus-visible {
 	position: relative;
 }
 
+/* 代码块语言标签 */
+.prose pre::after {
+	content: attr(data-language);
+	position: absolute;
+	top: 0.5em;
+	right: 1em;
+	font-size: 0.75rem;
+	color: var(--color-text-light);
+	text-transform: uppercase;
+	opacity: 0.7;
+}
+
+/*
+ * 行内代码（`code` 反引号语法）
+ *
+ * 必须覆盖 @tailwindcss/typography 的 prose 默认样式，共两处冲突：
+ *
+ * 1. Typography 用 :where(code)::before/::after 注入 content:"`"，
+ *    于是行内代码会被渲染成 ``cpu.max`` 这种「带反引号」的样子。
+ *    这里显式 content: none 关掉它，改由背景色来区分代码样式。
+ * 2. Typography 的 --tw-prose-code 只给了浅色值（#111827），
+ *    没有深色变体，暗色模式下代码文字几乎与背景同色而「看不见」。
+ *    这里直接用本项目自己的 --code-text / --code-bg 变量，
+ *    它们已经在 html.dark 下成对定义，两套主题都能正确显示。
+ *
+ * 注意选择器要写到 .prose code 并带上伪元素，
+ * 才能与 Typography 的 :where(...) 规则同层覆盖（后加载的同权重规则生效）。
+ */
+.prose code {
+	background-color: var(--code-bg);
+	color: var(--code-text);
+	padding: 0.2em 0.4em;
+	border-radius: 4px;
+	font-family: var(--font-mono);
+	font-size: 0.875em;
+}
+
+.prose code::before,
+.prose code::after {
+	content: none;
+}
+
+/*
+ * 代码块内部的 code：撤销行内代码的样式，并交还颜色控制权给 Shiki。
+ *
+ * 必须显式 color: inherit —— 否则会继承上面 .prose code 的 var(--code-text)。
+ * 而 Shiki 的代码块是固定深色主题（one-dark-pro，内联 background:#282c34），
+ * 浅色模式下 --code-text 是 #1f2937（深色），文字就变成深色压深底、几乎看不见。
+ * 继承 pre 的 color 才能拿到 Shiki 的配色，深浅两种主题下都正常。
+ */
+.prose pre code {
+	background: none;
+	padding: 0;
+	border-radius: 0;
+	font-size: 0.875rem;
+	color: inherit;
+}
+
+
 /* ===== 画板：内嵌视图与全屏查看器 ===== */
 
 /*
@@ -421,64 +480,6 @@ html.dark *:focus-visible {
 	font-size: 0.75em;
 	font-variant-numeric: tabular-nums;
 	user-select: none;
-}
-
-/* 代码块语言标签 */
-.prose pre::after {
-	content: attr(data-language);
-	position: absolute;
-	top: 0.5em;
-	right: 1em;
-	font-size: 0.75rem;
-	color: var(--color-text-light);
-	text-transform: uppercase;
-	opacity: 0.7;
-}
-
-/*
- * 行内代码（`code` 反引号语法）
- *
- * 必须覆盖 @tailwindcss/typography 的 prose 默认样式，共两处冲突：
- *
- * 1. Typography 用 :where(code)::before/::after 注入 content:"`"，
- *    于是行内代码会被渲染成 ``cpu.max`` 这种「带反引号」的样子。
- *    这里显式 content: none 关掉它，改由背景色来区分代码样式。
- * 2. Typography 的 --tw-prose-code 只给了浅色值（#111827），
- *    没有深色变体，暗色模式下代码文字几乎与背景同色而「看不见」。
- *    这里直接用本项目自己的 --code-text / --code-bg 变量，
- *    它们已经在 html.dark 下成对定义，两套主题都能正确显示。
- *
- * 注意选择器要写到 .prose code 并带上伪元素，
- * 才能与 Typography 的 :where(...) 规则同层覆盖（后加载的同权重规则生效）。
- */
-.prose code {
-	background-color: var(--code-bg);
-	color: var(--code-text);
-	padding: 0.2em 0.4em;
-	border-radius: 4px;
-	font-family: var(--font-mono);
-	font-size: 0.875em;
-}
-
-.prose code::before,
-.prose code::after {
-	content: none;
-}
-
-/*
- * 代码块内部的 code：撤销行内代码的样式，并交还颜色控制权给 Shiki。
- *
- * 必须显式 color: inherit —— 否则会继承上面 .prose code 的 var(--code-text)。
- * 而 Shiki 的代码块是固定深色主题（one-dark-pro，内联 background:#282c34），
- * 浅色模式下 --code-text 是 #1f2937（深色），文字就变成深色压深底、几乎看不见。
- * 继承 pre 的 color 才能拿到 Shiki 的配色，深浅两种主题下都正常。
- */
-.prose pre code {
-	background: none;
-	padding: 0;
-	border-radius: 0;
-	font-size: 0.875rem;
-	color: inherit;
 }
 
 /* 引用块 */
