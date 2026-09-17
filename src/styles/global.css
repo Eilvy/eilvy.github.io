@@ -150,51 +150,70 @@ html.dark *:focus-visible {
 	position: relative;
 }
 
+/*
+ * 带行号的代码块
+ *
+ * 结构前提（不要随意破坏）：
+ * Shiki 输出的是 <code> 内一串 <span class="line">…</span>，
+ * 相邻 span 之间带有真实的 "\n" 文本节点，换行完全由这些 "\n" 承担。
+ * 因此 .line 必须保持 display: inline ——
+ * 若把它改成 block，那些 "\n" 会再各自生成一个行盒，
+ * 每行代码后会多出一个空行，行距直接翻倍（实测 21px → 42px）。
+ *
+ * 行号由每个 .line 的 ::before 以 inline-block 排在行首。
+ * 行号栏宽度 = 左内缩 + 行号列宽 + 右侧间距，
+ * 三者由下面的 CSS 变量统一描述，行号栏底色渐变也复用同一组变量，
+ * 避免「底色带宽」与「行号实际占位」两处各写一个数字而错位。
+ *
+ * 换行策略：配合 astro.config.mjs 的 wrap: false，代码块整体不折行。
+ * 一旦折行，续行不属于行号的可见行首，会与行号列错位，
+ * ASCII 图（拓扑/协议栈示意）也会彻底失去对齐意义；
+ * 因此超宽内容改由横向滚动承载。
+ */
 .prose pre[data-line-numbers] {
-	padding-left: 3em;
-}
+	--gutter-inset: 0.5rem;  /* 行号栏左边缘 → 行号左边缘 */
+	--gutter-num: 1.75rem;   /* 行号列宽 */
+	--gutter-gap: 0.75rem;   /* 行号右边缘 → 代码正文 */
 
-.prose pre[data-line-numbers]::before {
-	content: '';
-	position: absolute;
-	left: 0;
-	top: 0;
-	bottom: 0;
-	width: 2.5em;
-	background-color: rgba(0, 0, 0, 0.1);
-	border-right: 1px solid var(--color-border);
-	counter-reset: line;
+	/* 左侧留白完全交给行号栏，保证底色从块的左边缘起算 */
+	padding-left: 0;
+	white-space: pre;
+	overflow-x: auto;
+	overscroll-behavior-x: contain;
+	/*
+	 * 行号栏底色画在 pre 自身背景上（而非独立绝对定位元素）。
+	 * 滚动容器的背景不随内容横向滚动，
+	 * 因此横向滚动代码时左侧行号栏始终保持贴边，不会留下空白。
+	 */
+	background-image: linear-gradient(
+		to right,
+		rgba(0, 0, 0, 0.1) 0 calc(var(--gutter-inset) + var(--gutter-num) + var(--gutter-gap)),
+		transparent calc(var(--gutter-inset) + var(--gutter-num) + var(--gutter-gap))
+	);
+	background-repeat: no-repeat;
+	background-position: left top;
+	background-size: 100% 100%;
 }
 
 .prose pre[data-line-numbers] code {
 	display: block;
+	white-space: pre;
+	/* 行号计数器从这里开始，供每个 .line 的 ::before 递增 */
+	counter-reset: line;
 }
 
 .prose pre[data-line-numbers] code > span.line::before {
 	counter-increment: line;
 	content: counter(line);
 	display: inline-block;
-	width: 2em;
+	margin-left: var(--gutter-inset);
+	width: var(--gutter-num);
+	margin-right: var(--gutter-gap);
 	text-align: right;
-	padding-right: 0.5em;
 	color: var(--color-text-light);
 	font-size: 0.75em;
-	line-height: 1.5;
-}
-
-.prose code {
-	background-color: var(--code-bg);
-	color: var(--code-text);
-	padding: 0.2em 0.4em;
-	border-radius: 4px;
-	font-family: var(--font-mono);
-	font-size: 0.875em;
-}
-
-.prose pre code {
-	background: none;
-	padding: 0;
-	font-size: 0.875rem;
+	font-variant-numeric: tabular-nums;
+	user-select: none;
 }
 
 /* 代码块语言标签 */
@@ -207,6 +226,52 @@ html.dark *:focus-visible {
 	color: var(--color-text-light);
 	text-transform: uppercase;
 	opacity: 0.7;
+}
+
+/*
+ * 行内代码（`code` 反引号语法）
+ *
+ * 必须覆盖 @tailwindcss/typography 的 prose 默认样式，共两处冲突：
+ *
+ * 1. Typography 用 :where(code)::before/::after 注入 content:"`"，
+ *    于是行内代码会被渲染成 ``cpu.max`` 这种「带反引号」的样子。
+ *    这里显式 content: none 关掉它，改由背景色来区分代码样式。
+ * 2. Typography 的 --tw-prose-code 只给了浅色值（#111827），
+ *    没有深色变体，暗色模式下代码文字几乎与背景同色而「看不见」。
+ *    这里直接用本项目自己的 --code-text / --code-bg 变量，
+ *    它们已经在 html.dark 下成对定义，两套主题都能正确显示。
+ *
+ * 注意选择器要写到 .prose code 并带上伪元素，
+ * 才能与 Typography 的 :where(...) 规则同层覆盖（后加载的同权重规则生效）。
+ */
+.prose code {
+	background-color: var(--code-bg);
+	color: var(--code-text);
+	padding: 0.2em 0.4em;
+	border-radius: 4px;
+	font-family: var(--font-mono);
+	font-size: 0.875em;
+}
+
+.prose code::before,
+.prose code::after {
+	content: none;
+}
+
+/*
+ * 代码块内部的 code：撤销行内代码的样式，并交还颜色控制权给 Shiki。
+ *
+ * 必须显式 color: inherit —— 否则会继承上面 .prose code 的 var(--code-text)。
+ * 而 Shiki 的代码块是固定深色主题（one-dark-pro，内联 background:#282c34），
+ * 浅色模式下 --code-text 是 #1f2937（深色），文字就变成深色压深底、几乎看不见。
+ * 继承 pre 的 color 才能拿到 Shiki 的配色，深浅两种主题下都正常。
+ */
+.prose pre code {
+	background: none;
+	padding: 0;
+	border-radius: 0;
+	font-size: 0.875rem;
+	color: inherit;
 }
 
 /* 引用块 */

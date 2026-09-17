@@ -12,7 +12,9 @@ export default defineConfig({
 	markdown: {
 		shikiConfig: {
 			theme: 'one-dark-pro',
-			wrap: true,
+			// 不折行：折行会让续行与行号列错位，也会破坏 ASCII 图（拓扑/协议栈示意）的对齐。
+			// 超宽内容改由代码块的横向滚动承载（见 global.css 的 pre[data-line-numbers]）。
+			wrap: false,
 			transformers: [
 				{
 					pre(node) {
