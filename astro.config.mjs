@@ -4,9 +4,16 @@ import mdx from '@astrojs/mdx';
 import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import tailwind from '@astrojs/tailwind';
-import { defineConfig, fontProviders } from 'astro/config';
+import { defineConfig } from 'astro/config';
 
-// https://astro.build/config
+/*
+ * 站点构建配置。
+ *
+ * 关于依赖版本：@astrojs/react 必须与 Astro 所用的大版本 Vite 对齐 ——
+ * Astro 5.18 用 Vite 6，因此这里用 @astrojs/react@4（plugin-react@4）。
+ * 若装成 @astrojs/react@6（需 Vite 8 / plugin-react@5），dev 下
+ * React Fast Refresh 的 preamble 注入会失败，画板等 React 岛直接报错。
+ */
 export default defineConfig({
 	site: 'https://eilvy.github.io',
 	integrations: [mdx(), react(), sitemap(), tailwind()],
@@ -19,35 +26,11 @@ export default defineConfig({
 			transformers: [
 				{
 					pre(node) {
-						// 添加行号属性
+						// 给代码块加 data-line-numbers，CSS 据此渲染行号栏
 						node.properties['data-line-numbers'] = 'true';
 					},
 				},
 			],
 		},
 	},
-	fonts: [
-		{
-			provider: fontProviders.local(),
-			name: 'Atkinson',
-			cssVariable: '--font-atkinson',
-			fallbacks: ['sans-serif'],
-			options: {
-				variants: [
-					{
-						src: ['./src/assets/fonts/atkinson-regular.woff'],
-						weight: 400,
-						style: 'normal',
-						display: 'swap',
-					},
-					{
-						src: ['./src/assets/fonts/atkinson-bold.woff'],
-						weight: 700,
-						style: 'normal',
-						display: 'swap',
-					},
-				],
-			},
-		},
-	],
 });
