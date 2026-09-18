@@ -138,6 +138,50 @@ export interface Step {
 }
 
 /**
+ * 单向水平箭头（右向）。用于串起流程：x2 < x1 时自动变成左向。
+ * 与 hArrow 的区别是只有箭头端有箭头（hArrow 是双向）。
+ */
+export const hFlow = (
+	x1: number,
+	x2: number,
+	y: number,
+	color: string = C.stroke,
+	label?: string
+): El => ({
+	type: 'arrow',
+	x: x1,
+	y,
+	points: [
+		[0, 0],
+		[x2 - x1, 0],
+	],
+	strokeColor: color,
+	strokeWidth: 2,
+	endArrowhead: 'arrow',
+	...(label ? { label: { text: label, fontSize: 13, fontFamily: FONT_LOCAL } } : {}),
+});
+
+/** 虚线分组框，用来圈出「宿主机侧 / Pod 侧」这类范围。须先于内部节点入数组 */
+export const groupFrame = (
+	x: number,
+	y: number,
+	w: number,
+	h: number
+): El => ({
+	type: 'rectangle',
+	x,
+	y,
+	width: w,
+	height: h,
+	backgroundColor: 'transparent',
+	fillStyle: 'solid',
+	strokeColor: C.muted,
+	strokeWidth: 1,
+	strokeStyle: 'dashed',
+	roundness: { type: 3 },
+});
+
+/**
  * 竖直流程布局：节点自上而下排列，节点之间画箭头，箭头右侧放该段的旁注。
  *
  * 把重复的坐标运算收在这里，场景文件里只描述「有哪些步骤、每步注什么」，

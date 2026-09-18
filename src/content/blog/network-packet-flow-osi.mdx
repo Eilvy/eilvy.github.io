@@ -15,7 +15,32 @@ import {
 	hop3Scene,
 	hop4Scene,
 	vethKernelScene,
+	overviewScene,
 } from '../../components/whiteboard/osi-flow.scenes';
+
+## 整体链路一图看清
+
+在逐跳拆解之前，先把整条路径铺开看一遍：一个包从物理网卡进入宿主机，
+经网桥转发、跨过 veth pair 进入 Pod，最后被应用进程读走。
+图中颜色对应各环节所工作的 OSI 层次，与后文每张分图一致。
+
+<WhiteboardLoader
+	elements={overviewScene}
+	label="整体链路总览：物理网卡 → 宿主机协议栈 → 网桥 → veth pair → Pod 协议栈 → 应用进程，并标出四跳归属与宿主机侧/Pod 侧的分界"
+	buttonText="点击加载整体流程图"
+	height={620}
+/>
+
+**读图要点**：
+
+- **横向是数据流向**，从左到右依次经过 5 个环节
+- **两个虚线框**是分界：左边属于宿主机，右边已经进入 Pod 的网络命名空间
+- **跨框那一步就是 veth pair**：它是两边的唯一通道，也是「宿主机网络」与
+  「Pod 网络」的交接点
+- **四跳归属**对应后文四个小节：第一跳在物理网卡、第二跳在网桥、
+  第三跳在 veth、第四跳在 Pod 协议栈
+
+---
 
 ## 前置：veth pair 的拓扑
 
