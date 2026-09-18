@@ -280,6 +280,8 @@ Excalidraw 在 `theme--dark` 下会给画布整体套
 | 点击后画板不显示且提前出现「正在加载」 | 面板用 `hidden` 属性但 CSS 是 `display: flex`（author 覆盖 UA 的 `[hidden]`） | 改用 `data-state` 精确控制 `display` |
 | 内嵌画板能被拖动 | `interactive` canvas 的 `pointer-events: auto` | 加 `.wb-shield`（需 `z-index` 高于画布） |
 | 画板拖走了页面滚动 | Excalidraw 的 `handleWheel` 对 canvas 一律 `preventDefault` | 捕获阶段 `stopPropagation`（不 preventDefault） |
+| 只点非首个画板时加载不出来，倒序点到第一个却全部出现 | Astro 的 island 运行时脚本整页只输出一次，且被排进**第一个** `<template>` 内；`<template>` 惰性，脚本不执行，`<astro-island>` 是未知元素无人处理。点到第一个时引导脚本才随克隆进入 DOM 并执行，浏览器追溯升级此前所有 island | 插入 island 前先把引导脚本从模板取出、重建为可执行节点追加到 `head`（只执行一次，含 `customElements.define` 重复执行会抛错） |
+| 箭头标注偏离箭头 | 标注是独立的 `text` 元素、坐标硬编码，与算出来的箭头位置无关联 | 改用箭头内置 `label`（Excalidraw 自动居中）。注意 label 过长会在箭头上折行盖住箭头，需同时放宽箭头间距或缩短文字 |
 
 ---
 
