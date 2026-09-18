@@ -43,11 +43,69 @@ export default defineConfig({
 			wrap: false,
 			transformers: [
 				{
+					/*
+					 * 把代码块重构成「固定行号栏 + 可滚动代码区」两列。
+					 *
+					 * ── 为什么必须改 DOM ──
+					 * 原先 pre 既是视觉容器、又是横向滚动容器，行号是
+					 * .line 的 ::before —— 属于滚动内容，一横向滚动就跟着
+					 * 滚出可视区；语言标签挂在 pre::after 上，同样被带走。
+					 *
+					 * 试过但不可行的办法：
+					 *   - ::before 加 position:sticky —— 伪元素是 inline-block，
+					 *     sticky 不生效（实测滚动后行号仍在可视区外）
+					 *   - 把 .line 改 display:block 再加 sticky —— 会破坏
+					 *     Shiki 用 \n 文本节点分行 的机制，行距翻倍
+					 * 因此改为：pre 不再滚动（overflow:hidden），
+					 * 内部拆成 gutter（固定）+ scroller（滚动）两列。
+					 * 这样 pre::after 的语言标签也自然固定住了。
+					 */
+					/** @param {import('hast').Element} node */
 					pre(node) {
-						// 给代码块加 data-line-numbers，CSS 据此渲染行号栏
 						node.properties['data-line-numbers'] = 'true';
-					},
-				},
+
+						/** @param {import('hast').ElementContent} n */
+						const isEl = (n) => n.type === 'element';
+
+						/** @param {import('hast').Element} el */
+						const classNameOf = (el) => {
+							const v = el.properties?.className ?? el.properties?.class ?? '';
+							return Array.isArray(v) ? v.join(' ') : String(v);
+						};
+
+						const code = node.children.find((c) => isEl(c) && c.tagName === 'code');
+						if (!code || !isEl(code)) return;
+
+						const lines = (code.children ?? []).filter(
+							(c) => isEl(c) && c.tagName === 'span' && classNameOf(c).includes('line')
+						);
+						if (!lines.length) return;
+
+						// 行号栏：每行一个等高格子，与代码行一一对应
+						/** @type {import('hast').Element} */
+						const gutter = {
+							type: 'element',
+							tagName: 'span',
+							properties: { className: ['code-gutter'], 'aria-hidden': 'true' },
+							children: lines.map((_, i) => ({
+								type: 'element',
+								tagName: 'span',
+								properties: { className: ['code-gutter__num'] },
+								children: [{ type: 'text', value: String(i + 1) }],
+							})),
+						};
+
+						// 代码区：外面套一层滚动容器，只有它横向滚动
+						/** @type {import('hast').Element} */
+						const scroller = {
+							type: 'element',
+							tagName: 'span',
+							properties: { className: ['code-scroll'] },
+							children: [code],
+						};
+
+						node.children = [gutter, scroller];
+					}				},
 			],
 		},
 	},

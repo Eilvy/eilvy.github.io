@@ -436,53 +436,114 @@ html.dark *:focus-visible {
  * ASCII 图（拓扑/协议栈示意）也会彻底失去对齐意义；
  * 因此超宽内容改由横向滚动承载。
  */
+/*
+ * 代码块：行号栏固定 + 代码区横向滚动
+ *
+ * ── 结构 ──
+ * 由 astro.config.mjs 的 Shiki transformer 重构成：
+ *   <pre data-line-numbers>            ← 视觉容器，不再滚动
+ *     <span class="code-gutter">       ← 固定行号栏（不滚动）
+ *       <span class="code-gutter__num">1</span> …
+ *     <span class="code-scroll">       ← 唯一横向滚动容器
+ *       <code><span class="line">…    ← Shiki 原始输出
+ *
+ * ── 为什么这么绕 ──
+ * 原先行号是 .line 的 ::before、语言标签是 pre::after，两者都在
+ * 「pre 这个滚动容器」的内容里，一横向滚动就跟着滚出可视区。
+ * 试过给 ::before 加 position:sticky —— 伪元素是 inline-block，
+ * sticky 不生效（实测行号仍会滚走）。所以必须把行号移出滚动区。
+ *
+ * ── 行号栏宽度 ──
+ * 三个变量统一描述，避免「底色带宽」与「行号占位」各写一个数字而错位。
+ * 行高必须与代码行高一致（都由 --code-line-height 驱动），否则行号会逐行错位。
+ */
 .prose pre[data-line-numbers] {
-	--gutter-inset: 0.5rem;  /* 行号栏左边缘 → 行号左边缘 */
-	--gutter-num: 1.75rem;   /* 行号列宽 */
-	--gutter-gap: 0.75rem;   /* 行号右边缘 → 代码正文 */
+	--gutter-inset: 0.5rem;   /* 行号栏左边缘 → 行号左边缘 */
+	--gutter-num: 1.75rem;    /* 行号列宽 */
+	--gutter-gap: 0.75rem;    /* 行号右边缘 → 代码正文 */
+	--code-line-height: 1.7;  /* 行号与代码行共用，保证逐行对齐 */
 
-	/* 左侧留白完全交给行号栏，保证底色从块的左边缘起算 */
+	display: flex;
+	/* 用基线对齐：行号与代码行字号不同，靠 flex-start 会有几像素视觉偏差 */
+	align-items: stretch;
+	/* pre 自己不再滚动：横向滚动交给 .code-scroll */
+	overflow: hidden;
 	padding-left: 0;
 	white-space: pre;
-	overflow-x: auto;
-	overscroll-behavior-x: contain;
-	/*
-	 * 行号栏底色画在 pre 自身背景上（而非独立绝对定位元素）。
-	 * 滚动容器的背景不随内容横向滚动，
-	 * 因此横向滚动代码时左侧行号栏始终保持贴边，不会留下空白。
-	 */
-	background-image: linear-gradient(
-		to right,
-		rgba(0, 0, 0, 0.1) 0 calc(var(--gutter-inset) + var(--gutter-num) + var(--gutter-gap)),
-		transparent calc(var(--gutter-inset) + var(--gutter-num) + var(--gutter-gap))
-	);
-	background-repeat: no-repeat;
-	background-position: left top;
-	background-size: 100% 100%;
 }
 
-.prose pre[data-line-numbers] code {
-	display: block;
-	white-space: pre;
-	/* 行号计数器从这里开始，供每个 .line 的 ::before 递增 */
-	counter-reset: line;
-}
-
-.prose pre[data-line-numbers] code > span.line::before {
-	counter-increment: line;
-	content: counter(line);
-	display: inline-block;
-	margin-left: var(--gutter-inset);
-	width: var(--gutter-num);
-	margin-right: var(--gutter-gap);
+/* 行号栏：固定不动，右侧一条细分隔线 */
+.prose pre[data-line-numbers] .code-gutter {
+	flex: none;
+	display: flex;
+	flex-direction: column;
+	width: calc(var(--gutter-inset) + var(--gutter-num) + var(--gutter-gap));
+	/* 与 pre 的上下内边距一致，保证行号首行与代码首行起点对齐 */
+	padding-top: 1.5em;
+	padding-bottom: 1.5em;
 	text-align: right;
 	color: var(--color-text-light);
-	font-size: 0.75em;
 	font-variant-numeric: tabular-nums;
 	user-select: none;
+	/*
+	 * 必须不透明：代码区横向滚动时，代码文字会滑到行号栏下方，
+	 * 若行号栏是半透明（原先是 rgba(0,0,0,.1)），文字会透出来
+	 * 与行号叠在一起（实测截图里能看到重影）。
+	 * 用 pre 背景色 + 一层浅色叠加，视觉上仍是「略深的一条」。
+	 */
+	background-color: var(--code-bg);
+	background-image: linear-gradient(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1));
+	z-index: 1;
 }
 
-/* 引用块 */
+.prose pre[data-line-numbers] .code-gutter__num {
+	/*
+	 * 行高必须与代码行**绝对值**相同，否则行号会逐行错位。
+	 *
+	 * 关键点：这里把字号缩到 0.75em 用于显示，但 line-height 不能
+	 * 直接用 var(--code-line-height) —— 无单位行高会按**自身**字号重算：
+	 * 1.7 × 10.5px = 17.85px，而代码行是 1.7 × 14px = 23.8px，
+	 * 两者不等 → 实测每行错位 12px 并逐行累积。
+	 * 所以除以字号缩放比，抵消掉这一层：1.7 / 0.75 = 2.2667，
+	 * 再乘 10.5px 正好回到 23.8px。
+	 */
+	/*
+	 * 行号格子的盒高必须等于代码行的行高（都是 --code-line-height × 1rem）。
+	 *
+	 * 注意不能只写 line-height: calc(var(--code-line-height) / 0.75)：
+	 * 无单位行高按自身字号算，而这里字号缩到 0.75em，
+	 * 于是盒高 = 1.7/0.75 × 0.75em = 1.7em —— 看似对，但 em 的基准
+	 * 是父级字号（14px），算出来 23.8px，与代码行一致；
+	 * 问题在于「行号数字」自身的字形高度只有 ~10.5px，
+	 * 在 23.8px 盒里垂直居中后，视觉上比代码行略高约 3px。
+	 * 直接用 height + flex 居中，把数字压到与代码行同一基线高度。
+	 */
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	height: calc(var(--code-line-height) * 1em);
+	font-size: 0.75em;
+	line-height: 1;
+	padding-right: var(--gutter-gap);
+}
+
+/* 代码区：唯一横向滚动容器 */
+.prose pre[data-line-numbers] .code-scroll {
+	flex: 1;
+	min-width: 0;
+	overflow-x: auto;
+	overscroll-behavior-x: contain;
+	padding-top: 1.5em;
+	padding-bottom: 1.5em;
+}
+
+.prose pre[data-line-numbers] .code-scroll code {
+	display: block;
+	white-space: pre;
+	line-height: var(--code-line-height);
+}
+
+/* 引用块 *//* 引用块 */
 .prose blockquote {
 	border-left: 4px solid var(--color-primary);
 	padding-left: 1em;
