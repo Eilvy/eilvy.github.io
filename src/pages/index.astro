@@ -1,8 +1,7 @@
 ---
 import BlogLayout from '../layouts/BlogLayout.astro';
 import PostCard from '../components/PostCard.astro';
-import Tag from '../components/Tag.astro';
-import { getSortedPosts, collectTags, tagUrl } from '../utils/posts';
+import { getSortedPosts, collectTagStats, tagUrl } from '../utils/posts';
 import { SITE_TITLE, SITE_DESCRIPTION, POSTS_PER_PAGE } from '../consts';
 
 // 已发布文章：置顶优先，其余按「有效更新时间」倒序
@@ -10,16 +9,25 @@ const allPosts = await getSortedPosts();
 const posts = allPosts.slice(0, POSTS_PER_PAGE);
 
 // 标签基于全部已发布文章统计，避免只随首页子集变化
-const allTags = collectTags(allPosts);
+// 用 collectTagStats 拿到文章数，首页展示「标签 + 篇数」，信息量比纯标签更大
+const tagStats = collectTagStats(allPosts);
 ---
 
 <BlogLayout title={SITE_TITLE} description={SITE_DESCRIPTION}>
 	<div class="home">
 		<section class="hero">
-			<h1>👋 你好！这里是Eilvy的博客！</h1>
+			<h1>👋 你好！这里是 Eilvy 的博客</h1>
+			{/*
+			 * 必须写成一行：HTML 会把换行折叠成一个空格，
+			 * 于是「。」后面会多出一个空格（全角句号后不该有空格）。
+			 */}
 			<p class="lead">
-				分享后端开发、 VibeCoding、运维开发等主题的文章
+				后端 / 运维开发，关注容器与网络、AI 网关与中间件。这里记录我在实际项目里踩过的坑与想明白的事。
 			</p>
+			<div class="hero-actions">
+				<a href="/blog" class="btn btn--primary">浏览全部文章</a>
+				<a href="/about" class="btn">关于我</a>
+			</div>
 		</section>
 		
 		<section class="latest-posts">
@@ -40,12 +48,24 @@ const allTags = collectTags(allPosts);
 			</div>
 		</section>
 		
-		{allTags.length > 0 && (
+		{tagStats.length > 0 && (
 			<section class="tags-section">
-				<h2>热门标签</h2>
+				<div class="section-header">
+					<h2>标签</h2>
+					<a href="/tags" class="view-all">
+						全部标签
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path d="M5 12h14M12 5l7 7-7 7"/>
+						</svg>
+					</a>
+				</div>
 				<div class="tags-cloud">
-					{allTags.slice(0, 10).map((tag) => (
-						<Tag name={tag} href={tagUrl(tag)} />
+					{/* 已按文章数倒序，取前 12 个；首页放不下的由 /tags 兜底 */}
+					{tagStats.slice(0, 12).map((t) => (
+						<a href={tagUrl(t.name)} class="tag-chip">
+							<span class="tag-chip__name">{t.name}</span>
+							<span class="tag-chip__count">{t.count}</span>
+						</a>
 					))}
 				</div>
 			</section>
@@ -81,11 +101,54 @@ const allTags = collectTags(allPosts);
 	}
 	
 	.hero .lead {
-		font-size: 1.25rem;
+		font-size: 1.125rem;
 		color: var(--color-text-light);
-		max-width: 600px;
+		max-width: 620px;
 		margin: 0 auto;
-		line-height: 1.6;
+		line-height: 1.7;
+	}
+
+	/*
+	 * Hero 的行动点。主按钮用主色实底、次按钮用描边，
+	 * 视觉上区分主次，避免两个按钮抢注意力。
+	 */
+	.hero-actions {
+		display: flex;
+		justify-content: center;
+		flex-wrap: wrap;
+		gap: 0.75em;
+		margin-top: 1.75em;
+	}
+
+	.btn {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.55em 1.25em;
+		font-size: 0.9375rem;
+		font-weight: 500;
+		color: var(--color-text);
+		text-decoration: none;
+		background-color: var(--color-bg);
+		border: 1px solid var(--color-border);
+		border-radius: 9999px;
+		transition: all 0.2s;
+	}
+
+	.btn:hover {
+		color: var(--color-primary);
+		border-color: var(--color-primary);
+	}
+
+	.btn--primary {
+		color: #fff;
+		background-color: var(--color-primary);
+		border-color: var(--color-primary);
+	}
+
+	.btn--primary:hover {
+		color: #fff;
+		background-color: var(--color-primary-dark);
+		border-color: var(--color-primary-dark);
 	}
 	
 	.section-header {
@@ -95,6 +158,11 @@ const allTags = collectTags(allPosts);
 		margin-bottom: 2em;
 		padding-bottom: 1em;
 		border-bottom: 2px solid var(--color-border);
+	}
+
+	/* 标签区的标题与胶囊挨得近一些 */
+	.tags-section .section-header {
+		margin-bottom: 1.5em;
 	}
 	
 	.section-header h2 {
@@ -136,19 +204,53 @@ const allTags = collectTags(allPosts);
 	}
 	
 	.tags-section {
-		margin-top: 4em;
+		margin-top: 1em;
 	}
-	
-	.tags-section h2 {
-		font-size: 1.75rem;
-		margin-bottom: 1.5em;
-		color: var(--color-text);
-	}
-	
+
+	/*
+	 * 标签胶囊：名称 + 篇数。
+	 * 篇数用 tabular-nums 让数字等宽，多个胶囊并排时右侧对齐更整齐。
+	 */
 	.tags-cloud {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.75em;
+	}
+
+	.tag-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5em;
+		padding: 0.4em 0.85em;
+		color: var(--color-text);
+		text-decoration: none;
+		background-color: var(--color-bg-secondary);
+		border: 1px solid var(--color-border);
+		border-radius: 9999px;
+		transition: all 0.2s;
+	}
+
+	.tag-chip:hover {
+		color: var(--color-primary);
+		border-color: var(--color-primary);
+	}
+
+	.tag-chip__name {
+		font-size: 0.9375rem;
+	}
+
+	.tag-chip__count {
+		font-size: 0.75rem;
+		line-height: 1.6;
+		padding: 0 0.45em;
+		color: var(--color-text-light);
+		background-color: var(--color-bg);
+		border-radius: 9999px;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.tag-chip:hover .tag-chip__count {
+		color: var(--color-primary);
 	}
 	
 	@media (max-width: 768px) {
@@ -167,6 +269,16 @@ const allTags = collectTags(allPosts);
 		
 		.hero .lead {
 			font-size: 1rem;
+		}
+
+		.hero-actions {
+			flex-direction: column;
+			align-items: stretch;
+			margin-top: 1.5em;
+		}
+
+		.btn {
+			justify-content: center;
 		}
 		
 		.posts-grid {
