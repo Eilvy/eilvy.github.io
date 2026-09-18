@@ -482,17 +482,30 @@ html.dark *:focus-visible {
 	padding-top: 1.5em;
 	padding-bottom: 1.5em;
 	text-align: right;
-	color: var(--color-text-light);
+	/*
+	 * 行号颜色从代码块的前景色派生，而不是用站点的 --color-text-light。
+	 * 代码前景是 Shiki 内联写死的（one-dark-pro 的 #abb2bf），
+	 * 站点变量是另一套灰（#9ca3af）—— 两者色相不同，并排看会「不一个调」。
+	 * 这里继承前景色 + 降不透明度，保证与代码同源、明暗自动跟随。
+	 */
+	color: inherit;
+	opacity: 0.65;
 	font-variant-numeric: tabular-nums;
 	user-select: none;
 	/*
-	 * 必须不透明：代码区横向滚动时，代码文字会滑到行号栏下方，
-	 * 若行号栏是半透明（原先是 rgba(0,0,0,.1)），文字会透出来
-	 * 与行号叠在一起（实测截图里能看到重影）。
-	 * 用 pre 背景色 + 一层浅色叠加，视觉上仍是「略深的一条」。
+	 * 背景必须**继承代码块自身**，不能用站点的 --code-bg。
+	 *
+	 * 原因：代码块背景是 Shiki 以**内联样式**写死的（one-dark-pro 的
+	 * #282c34），而 --code-bg 是站点主题变量（浅色 #f3f4f6 / 暗色 #1f2937）。
+	 * 两者来源不同，永远对不上：
+	 *   - 暗色主题下 #1f2937 vs #282c34 —— 色差明显，行号栏像贴了条补丁
+	 *   - 浅色主题下 #f3f4f6 vs #282c34 —— 浅灰条压在暗色块上，反差极大
+	 *
+	 * 改用 background-color: inherit 让它跟着 pre 的内联背景走，
+	 * 再用半透明遮罩做轻微区分（而不是换一个颜色）。
 	 */
-	background-color: var(--code-bg);
-	background-image: linear-gradient(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1));
+	background-color: inherit;
+	background-image: linear-gradient(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.12));
 	z-index: 1;
 }
 
