@@ -172,6 +172,34 @@ export const hFlow = (
 	...(label ? { label: { text: label, fontSize: 13, fontFamily: FONT_LOCAL } } : {}),
 });
 
+/**
+ * 任意两点之间的单向箭头（可斜向）。
+ *
+ * vArrow / hFlow 只处理正上正下、正左正右；当需要把两条平行的链
+ * 「汇入」同一个节点时，必须画斜线，否则箭头会落在目标方框之外 ——
+ * 实测 NodePort 图里误用 hFlow 画汇合线，两个箭头都指向了空白。
+ */
+export const arrowTo = (
+	x1: number,
+	y1: number,
+	x2: number,
+	y2: number,
+	color: string = C.stroke,
+	label?: string
+): El => ({
+	type: 'arrow',
+	x: x1,
+	y: y1,
+	points: [
+		[0, 0],
+		[x2 - x1, y2 - y1],
+	],
+	strokeColor: color,
+	strokeWidth: 2,
+	endArrowhead: 'arrow',
+	...(label ? { label: { text: label, fontSize: 13, fontFamily: FONT_LOCAL } } : {}),
+});
+
 /** 虚线分组框，用来圈出「宿主机侧 / Pod 侧」这类范围。须先于内部节点入数组 */
 export const groupFrame = (
 	x: number,

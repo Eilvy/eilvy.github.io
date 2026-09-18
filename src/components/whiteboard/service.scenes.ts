@@ -12,7 +12,7 @@
  * 配色与布局件见 scene-kit.ts（含「不要为暗色另写一套配色」的说明）。
  */
 
-import { C, box, txt, hFlow, vArrow, type El } from './scene-kit';
+import { C, box, txt, hFlow, vArrow, arrowTo, type El } from './scene-kit';
 
 /* ─────────────────────────────────────────────
  * 一、ClusterIP：虚拟 IP 的 DNAT 过程
@@ -29,9 +29,11 @@ export const clusterIpScene: El[] = [
 	hFlow(190, 240, 172, C.stroke),
 	hFlow(390, 440, 172, C.stroke, '命中'),
 
-	// 后端三选一
-	vArrow(525, 214, 268, C.emphasis),
-	txt(430, 278, '按规则分发到其中一个后端：', 13, C.muted),
+	// 后端三选一：箭头要一直指到 Pod 行顶边（y=306），
+	// 早先只画到 268，终点悬在 Pod 上方的空白里
+	vArrow(525, 214, 306, C.emphasis),
+	// 说明文字放在箭头右侧，避免被 x=525 的竖直箭头穿过
+	txt(548, 288, '按规则分发到其中一个后端', 13, C.muted),
 	box(400, 306, 105, 70, 'PodA', C.pod, 14),
 	box(517, 306, 105, 70, 'PodB', C.pod, 14),
 	box(634, 306, 105, 70, 'PodC', C.pod, 14),
@@ -61,10 +63,14 @@ export const nodePortScene: El[] = [
 	hFlow(240, 330, 158, C.stroke),
 	hFlow(240, 330, 338, C.stroke),
 
-	// 汇合到 DNAT
+	/*
+	 * 汇合到 DNAT：两条链的出口在方框左右两侧的上/下，
+	 * 必须用斜箭头才能真正「指到」方框 ——
+	 * 早先用 hFlow 画水平线，终点落在方框外的空白处（箭头指向空）。
+	 */
 	box(600, 210, 180, 76, 'NodePort DNAT\n→ PodIP:Port', C.rule, 14),
-	hFlow(520, 600, 158, C.stroke),
-	hFlow(520, 600, 338, C.stroke),
+	arrowTo(520, 158, 600, 232, C.stroke),
+	arrowTo(520, 338, 600, 264, C.stroke),
 
 	// 策略说明
 	txt(40, 420, 'externalTrafficPolicy 的取舍：', 15),
@@ -130,8 +136,12 @@ export const iptablesScene: El[] = [
 	box(470, 328, 290, 48, 'KUBE-SEP-AAAA   (1/3)  → PodA', C.pod, 13),
 	box(470, 386, 290, 48, 'KUBE-SEP-BBBB   (1/3)  → PodB', C.pod, 13),
 	box(470, 444, 290, 48, 'KUBE-SEP-CCCC   (1/3)  → PodC', C.pod, 13),
-	// 从 KUBE-SVC 指向规则列表的引导线（走 KUBE-SVC 右侧，避免压字）
-	hFlow(430, 470, 244, C.stroke),
+	/*
+	 * 从 KUBE-SVC 指向规则列表的引导线。
+	 * 用斜线连到列表第一条的左边，而不是画水平线 ——
+	 * 水平线终点会落在列表上方的空白处（箭头指向空）。
+	 */
+	arrowTo(430, 250, 470, 352, C.stroke),
 ];
 
 /* ─────────────────────────────────────────────
