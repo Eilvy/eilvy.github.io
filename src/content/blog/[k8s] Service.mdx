@@ -1,0 +1,179 @@
+---
+title: '[k8s] Service分析'
+description: '分析k8s Service组件运行逻辑'
+pubDate: 2026-05-10
+tags: ['k8s','Network']
+categories: ['k8s','计算机网络']
+author: 'eilvy'
+---
+
+import WhiteboardLoader from '../../components/whiteboard/WhiteboardLoader.astro';
+import {
+	clusterIpScene,
+	nodePortScene,
+	loadBalancerScene,
+	iptablesScene,
+	ipvsScene,
+	modeCompareScene,
+} from '../../components/whiteboard/service.scenes';
+
+
+问题：Service 的 ClusterIP/NodePort/LoadBalancer 底层分别怎么实现的？kube-proxy 的 iptables 模式和 IPVS 模式区别？
+
+通常会深挖到 **数据包在宿主机上的完整流转路径**。
+
+------
+
+### 一、一句话总述
+
+> Service 本质上是一个 **虚拟 IP + 端口映射**，不绑定任何实体网络设备。三种类型的本质区别在于 **这个 VIP 的暴露范围** 和 **后端负载均衡的接入点**。kube-proxy 负责把这个 VIP 翻译成后端 Pod IP 的 DNAT 规则。
+
+------
+
+### 二、三种 Service 类型底层实现
+
+**ClusterIP（默认，基础模型）**
+
+ClusterIP 是 K8s 集群内部的虚拟 IP，只在集群内可达。它没有实物网卡，去 ping ClusterIP 不会有响应（因为是 iptables/IPVS 做的 NAT，只对特定的 port 做 DNAT，ICMP 不匹配任何规则会被丢掉）。具体实现：
+
+- etcd 中保存了 `Service → EndpointSlice` 的映射关系，EndpointSlice 记录了所有 Ready Pod 的 IP:Port。
+- kube-proxy 通过 Informer watch 到 Service 和 EndpointSlice 的变化，在宿主机上写入 **iptables NAT 规则**（或者 IPVS 规则）。
+- 集群内 Pod 请求 `ClusterIP:Port` 时，数据包经过宿主机 **OUTPUT/PREROUTING** 链，命中 DNAT 规则，目标 IP/Port 被替换为一个具体的 Pod IP/Port。
+- 这个 DNAT 规则在宿主机上完成，**不回源到 APIServer**，完全由每个 Node 独立负责。
+
+<WhiteboardLoader
+	elements={clusterIpScene}
+	label="ClusterIP 的 DNAT 过程：集群内 Pod 请求 ClusterIP，命中宿主机内核的 DNAT 规则后分发到某个后端 Pod"
+	buttonText="点击加载 ClusterIP 流程图"
+	height={560}
+/>
+
+> 这也是为什么你说「ClusterIP 是虚拟的」是对的——它只存在于 iptables/IPVS 规则表里。
+
+对应到你的 Trainer 项目：训练任务 Pod 之间通过 ClusterIP 通信，访问的就是 Service IP，再由 DNAT 分发到实际 Pod。
+
+**NodePort（ClusterIP 的上层封装）**
+
+NodePort 在 ClusterIP 基础上，**在宿主机上额外开一个端口**（默认 30000-32767）。实现：kube-proxy 在宿主机 PREROUTING 链加一条规则，拦截所有目的端口为 NodePort 的入站包，同样做 DNAT 到后端 Pod。
+
+
+
+<WhiteboardLoader
+	elements={nodePortScene}
+	label="NodePort 的两条入口链：集群外部请求走 PREROUTING，集群内请求走 OUTPUT，两条链都要写规则；下方对比 Cluster 与 Local 两种 externalTrafficPolicy"
+	buttonText="点击加载 NodePort 流程图"
+	height={620}
+/>
+
+<details>
+<summary>等价的文字描述（便于复制 / 无 JS 环境）</summary>
+
+```
+请求 → NodeIP:NodePort → 宿主机网卡 → PREROUTING（raw/表）→
+  ↘ 命中 NodePort DNAT 规则 → FORWARD → POSTROUTING（SNAT）→ PodIP:Port
+```
+
+</details>
+
+这里有一个关键点：NodePort 模式下，如果请求来自集群外部（物理机网卡进入），数据包走的是 **PREROUTING** 链。如果请求来自集群内另一个 Pod（从本机 loopback 或 veth 出去），走的是 **OUTPUT** 链。kube-proxy 会在两条链上都写规则，确保无论来源都能命中。
+
+- **优势**：不需要外部负载均衡器，物理机可达即可。
+- **问题**：如果请求的源 IP 不是集群内的 Pod，且 `externalTrafficPolicy` 没设 `Local`，kube-proxy 默认会做 SNAT（把源 IP 换成宿主机 IP），导致 Pod 看不到真实请求来源。设为 `Local` 模式则不 SNAT 但流量只转发到本机 Pod，跨 Node 的 Pod 就收不到，会造成负载不均。
+
+**LoadBalancer（NodePort 的上层封装）**
+
+LoadBalancer 在 NodePort 基础上外挂一个云负载均衡器（SLB/ALB/NLB）。云控制器（cloud-controller-manager）创建 Service 时，调用云厂商 API 创建一个 LB 实例，LB 监听端口自动绑定所有 Node 的 NodePort。
+
+
+
+<WhiteboardLoader
+	elements={loadBalancerScene}
+	label="LoadBalancer 的转发路径：客户端 → 云负载均衡 → 任意 Node 的 NodePort → Pod；下方对比 Cluster 与 Local 两种 externalTrafficPolicy"
+	buttonText="点击加载 LoadBalancer 流程图"
+	height={540}
+/>
+
+<details>
+<summary>等价的文字描述（便于复制 / 无 JS 环境）</summary>
+
+```
+客户端 → LB:80 → NodeA:NodePort → PodA （假如 LB 把请求送给了 NodeA）
+              → NodeB:NodePort → PodB
+```
+
+</details>
+
+- `externalTrafficPolicy: Cluster`（默认）：LB 发往任意 Node 的 NodePort，该 Node kube-proxy 再把包二次转发到可能在其他 Node 的 Pod。
+- `externalTrafficPolicy: Local`：LB 只发到有目标 Pod 的 Node，避免二次转发，保留源 IP，但负载均衡就交给了云 LB，K8s 侧的 Pod 扩容后云 LB 后端要等健康检查生效才能感知。
+
+------
+
+### 三、kube-proxy 的 iptables 模式 vs IPVS 模式
+
+**iptables 模式**
+
+kube-proxy 为每个 Service 及其后端 Pod 写入 iptables 规则，规则结构是一个**链式匹配**：
+
+<WhiteboardLoader
+	elements={iptablesScene}
+	label="iptables 模式的链式匹配：PREROUTING → KUBE-SERVICES → KUBE-SVC-XXXX → 按概率 DNAT 到三个后端 Pod，以及规则上万后的三个问题"
+	buttonText="点击加载 iptables 模式流程图"
+	height={540}
+/>
+
+<details>
+<summary>等价的 ASCII 图（便于复制 / 无 JS 环境）</summary>
+
+```
+PREROUTING → KUBE-SERVICES
+  └（匹配 ClusterIP:Port）→ KUBE-SVC-XXXX
+      ├ KUBE-SEP-AAAA（1/3 概率 DNAT 到 PodA）
+      ├ KUBE-SEP-BBBB（1/3 概率 DNAT 到 PodB）
+      └ KUBE-SEP-CCCC（1/3 概率 DNAT 到 PodC）
+```
+
+</details>
+
+每个 `KUBE-SEP-*` 规则用 `statistic random` 模块实现轮询。问题：
+
+- **规则数量与 Service 数量成正比线性增长**。一个 3000 Service 规模的集群，每台宿主机上 iptables 规则可能上万条。Linux 内核的 iptables 规则是用**链表**存，遍历一个万条规则的链表非常慢，尤其是在规则链没命中时（最坏情况要走到默认策略）。
+- 非增量更新：iptables 规则替换是**原子替换整个链**（`iptables-restore`）。当集群 Service 频繁变动时，每次重建全套规则产生的 CPU/网络毛刺很明显。这也是为什么大规模集群会碰到 `（NF_HOOK: packet loss）` 的问题——iptables 规则太多了，内核态遍历耗时过长，处理不过来了。
+- **匹配复杂度 O(n)**：每个数据包都要从链头遍历到匹配项，n 是 Service 数量。
+
+**IPVS 模式**
+
+IPVS 在内核中使用 **哈希表** 存储转发规则：
+
+- **匹配复杂度 O(1)**：内核维护一个哈希表，key 是 `（协议，目标 IP，目标 Port）`，数据包到达时直接 hash 查找，一秒。
+- **内核原生负载均衡算法调度**：IPVS 支持 rr（轮询）、sh（源地址哈希）、lc（最小连接数）、dh（目的地址哈希）、sed（最短预计延迟）、nq（不排队）等多种算法，直接在内核态完成转发。
+- **增量更新**：添加/删除一个 Service 后端时，只更新哈希表里对应的那一条，不会重建全表，大幅降低了频繁创建/删除 Service 时的抖动。
+
+负面：
+
+- IPVS 本身只做四层转发，**不处理 SNAT**。所以讲 IPVS 模式时要注意：kube-proxy 在使用 IPVS 做 DNAT 的基础上，仍然要退回到 iptables 处理 SNAT（`MASQUERADE`）和 `NodePort` 的入站拦截。所以你用 IPVS 模式的集群上 `iptables -t nat -L` 还是可以看到规则的，只不过规则量从 O(n) 变成了 O(1)。
+- IPVS 的 `ip_vs` 内核模块要提前加载，且需要 `ipset` 配合管理白名单/黑名单（如 ClusterIP 避免被 SNAT 等）。
+
+<WhiteboardLoader
+	elements={ipvsScene}
+	label="IPVS 模式：数据包经哈希表直查转发到后端 Pod；但 SNAT 与 NodePort 入站拦截仍需回退 iptables"
+	buttonText="点击加载 IPVS 模式流程图"
+	height={620}
+/>
+
+**一句话对比（总结）**：
+
+> iptables 模式规则是线性链表，Service 多了每条规则都要从头遍历到尾巴；IPVS 模式是内核哈希表直查，O(1) 复杂度。IPVS 还支持内核态负载调度算法选择，增量更新不走 `iptables-restore` 全量替换，大规模集群基本都用 IPVS。
+
+<WhiteboardLoader
+	elements={modeCompareScene}
+	label="iptables 模式与 IPVS 模式对比：前者链表遍历 O(n)，后者哈希直查 O(1)"
+	buttonText="点击加载模式对比图"
+	height={480}
+/>
+
+------
+
+### 四、可能遇到 iptables 的问题
+
+- 在某项目的 K8s 集群内部网络诊断时，遇到过 NodePort 返回 `connection refused`，原因是 EndpointSlice 更新后 iptables 规则还没来得及刷上去。排查方式是在 Node 上 `iptables-save | grep <Service-IP>` 看 DNAT 规则是否存在。
+- IPVS 模式下遇到过长连接负载不均（RR 算法对长连接只在建立时做一次 hash，后续整个连接都走到同一个 Pod），解决办法是改了调度算法为 `lc` 或者应用层连接池做主动重连。

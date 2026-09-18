@@ -38,6 +38,17 @@ export const C = {
 	l5: '#d0bfff', // 会话/表示/应用层
 	neutral: '#e9ecef',
 	warn: '#ffc9c9',
+
+	/*
+	 * 通用语义色：给非 OSI 语境的图用（如 k8s Service 的网络拓扑）。
+	 * 取值与上面的 l1…l5 相同，保证全站观感一致，
+	 * 只是换了更好懂的语义名，避免在 Service 图里写 C.l3 这种看不懂的引用。
+	 */
+	external: '#ffd8a8', // 集群外部 / 客户端
+	node: '#a5d8ff', // 宿主机 / Node
+	rule: '#ffec99', // 转发规则 / 内核态处理
+	pod: '#b2f2bb', // Pod / 后端实例
+	lb: '#d0bfff', // 负载均衡器
 };
 
 /** 纯文本 */
