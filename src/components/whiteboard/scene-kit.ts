@@ -135,8 +135,6 @@ export interface Step {
 	label: string;
 	/** 节点填充色（建议取 C.l1 … C.l5） */
 	fill: string;
-	/** 该节点「之后」那段箭头的旁注（可多行，用 \n） */
-	note?: string;
 }
 
 /**
@@ -147,19 +145,14 @@ export interface Step {
  */
 export function vStack(
 	steps: Step[],
-	opts: { x?: number; y0?: number; w?: number; h?: number; gap?: number; noteSize?: number } = {}
+	opts: { x?: number; y0?: number; w?: number; h?: number; gap?: number } = {}
 ): El[] {
-	const { x = 60, y0 = 120, w = 300, h = 78, gap = 96, noteSize = 13 } = opts;
+	const { x = 60, y0 = 120, w = 300, h = 78, gap = 96 } = opts;
 	const els: El[] = [];
 
 	steps.forEach((step, i) => {
 		const y = y0 + i * (h + gap);
 		els.push(box(x, y, w, h, step.label, step.fill));
-
-		if (step.note) {
-			// 旁注放在「该节点下方那段箭头」的右侧
-			els.push(txt(x + w + 40, y + h + 10, step.note, noteSize, C.muted));
-		}
 
 		if (i < steps.length - 1) {
 			els.push(vArrow(x + w / 2, y + h, y + h + gap));

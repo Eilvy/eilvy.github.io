@@ -100,13 +100,17 @@ export const vethKernelScene: El[] = [
 	txt(40, 30, 'veth pair 跨端转发：内核里的实现', 22),
 	txt(42, 68, '一对 net_device 之间由「虚拟数据通道」相连', 13, C.muted),
 
-	box(40, 120, 230, 96, 'veth host 端', C.l2),
-	box(370, 120, 230, 96, 'veth pod 端', C.l2),
+	box(40, 120, 210, 96, 'veth host 端', C.l2),
+	box(430, 120, 210, 96, 'veth pod 端', C.l2),
 
-	// 两端之间的双向箭头（xmit 直接调用对端 rx）
-	hArrow(270, 370, 168, C.emphasis),
-	txt(40, 240, 'xmit() 直接调用对端 rx()：函数调用，不是网络传输', 13, C.emphasis),
+	/*
+	 * 两端之间的双向箭头（xmit 直接调用对端 rx）。
+	 * 标注走箭头内置 label；label 过大会换行盖住箭头，所以这里同时：
+	 *   1) 把箭头间距放宽到 220px（原来 100px 太窄，长文字会折成三行）
+	 *   2) 标注只留核心短语，细节移到下方正文
+	 */
+	hArrow(250, 430, 168, C.emphasis, 'xmit() 调用对端 rx()'),
 
-	txt(40, 300, '关键：不是物理发送，是内核函数调用 + 内存拷贝', 15),
-	box(40, 340, 560, 88, 'sk_buff 交给对端协议栈处理（必要时才 clone / copy）', C.neutral, 14),
+	txt(40, 250, '关键：不是物理发送，是内核函数调用 + 内存拷贝', 15),
+	box(40, 300, 600, 88, 'sk_buff 交给对端协议栈处理（必要时才 clone / copy）', C.neutral, 14),
 ];
