@@ -7,9 +7,28 @@ categories: ['AI 绘图', 'AI']
 author: 'eilvy'
 ---
 
+import WhiteboardLoader from '../../components/whiteboard/WhiteboardLoader.astro';
+import {
+	targetPipelineScene,
+	comfyWorkflowScene,
+	handoffScene,
+	ecosystemScene,
+	roadmapScene,
+} from '../../components/whiteboard/llm-comfyui.scenes';
+
 ## 一、需求与目标再定义
 
 目标链路是这样的：
+
+<WhiteboardLoader
+	elements={targetPipelineScene}
+	label="目标链路：用户草图经 LLM 多模态识图、生成结构化控制参数，再调用 ComfyUI API 执行并返回出图"
+	buttonText="点击加载目标链路图"
+	height={660}
+/>
+
+<details>
+<summary>等价的 ASCII 图（便于复制 / 无 JS 环境）</summary>
 
 ```
 用户草图(图片)
@@ -18,6 +37,8 @@ author: 'eilvy'
                  └─> 调用 ComfyUI API 执行
                         └─> 返回最终出图
 ```
+
+</details>
 
 核心诉求可以拆成四条：
 
@@ -307,6 +328,16 @@ run_nvidia_gpu.bat                                # 官方便携包
 
 **草图 → 出图工作流示例：**
 
+<WhiteboardLoader
+	elements={comfyWorkflowScene}
+	label="ComfyUI 草图工作流：草图经 ControlNet 预处理与应用约束结构，再由 KSampler 采样、VAEDecode 出图；右侧是 ControlNet 模型与底模等旁路依赖"
+	buttonText="点击加载工作流图"
+	height={620}
+/>
+
+<details>
+<summary>等价的 ASCII 图（便于复制 / 无 JS 环境）</summary>
+
 ```
 [Load Image(草图)] ──IMAGE──> [ControlNet Preprocessor(lineart)]
                                           │IMAGE
@@ -325,6 +356,8 @@ run_nvidia_gpu.bat                                # 官方便携包
                                                                   │
                                                           [Preview Image]
 ```
+
+</details>
 
 **常用界面操作：**
 
@@ -528,9 +561,21 @@ print(node_schemas["KSampler"])   # 该节点的输入、输出、参数范围�
 
 **关键衔接点：**
 
+<WhiteboardLoader
+	elements={handoffScene}
+	label="从人工调试到 API 调用的衔接点：WebUI 搭好工作流后导出 API 格式 JSON，中间层加载模板并由 LLM 填参，最后 POST /prompt 提交"
+	buttonText="点击加载衔接点图"
+	height={720}
+/>
+
+<details>
+<summary>等价的 ASCII 图（便于复制 / 无 JS 环境）</summary>
+
 ```
 人工 WebUI 调试 ──导出 workflow_api.json──> API 模板 ──> LLM 填参 ──> POST /prompt
 ```
+
+</details>
 
 ### 5.4 对本方案的具体含义
 
@@ -602,10 +647,12 @@ print(node_schemas["KSampler"])   # 该节点的输入、输出、参数范围�
 
 **没有一个项目同时完整覆盖全部四点，但每一环都有成熟开源实现，拼装即可。**
 
-```
-草图 → LLM识图理解 → LLM出参数/prompt → 驱动ComfyUI(ControlNet) → 出图
- ①           ②                    ③                  ④
-```
+<WhiteboardLoader
+	elements={ecosystemScene}
+	label="开源生态映射：草图输入、LLM 识图、LLM 工具调用、ControlNet 出图四个环节，各自对应可复用的现成开源项目"
+	buttonText="点击加载开源生态图"
+	height={440}
+/>
 
 | 环节 | 现成可复用的项目 |
 |---|---|
@@ -672,8 +719,20 @@ SD 主线为 1.x → 2.x → SDXL → SD3/3.5。SD1.5 生态最全、SDXL 画质
 
 **推荐落地路径**
 
+<WhiteboardLoader
+	elements={roadmapScene}
+	label="推荐落地路径：WebUI 搭工作流并调优，导出 API JSON 模板，写薄编排层，以 SD1.5 + ControlNet 起步，跑通后可选 SDXL 高质量模式"
+	buttonText="点击加载落地路径图"
+	height={440}
+/>
+
+<details>
+<summary>等价的 ASCII 图（便于复制 / 无 JS 环境）</summary>
+
 ```
 WebUI 搭工作流并调优 → 导出 API JSON 模板
     → 写薄编排层（上传草图 + LLM 识图出参 + 填模板 + POST /prompt + 取结果）
         → SD1.5 + ControlNet 起步，跑通后可选 SDXL 高质量模式
 ```
+
+</details>

@@ -52,6 +52,17 @@ export const C = {
 	rule: '#ffec99', // 转发规则 / 内核态处理
 	pod: '#b2f2bb', // Pod / 后端实例
 	lb: '#d0bfff', // 负载均衡器
+
+	/*
+	 * AI / 生图语境：LLM 识图 + ComfyUI 出图。
+	 * 同样与上面的取值一致，只是换成该语境下好懂的语义名 ——
+	 * 在 ComfyUI 的图里写 C.lb 表示「LLM」没人看得懂，写 C.llm 一目了然。
+	 */
+	input: '#ffd8a8', // 用户输入（草图、意图文字）
+	llm: '#d0bfff', // LLM 环节（识图、出参）
+	control: '#ffec99', // 控制参数 / 编排层
+	engine: '#a5d8ff', // 执行引擎（ComfyUI / 采样）
+	output: '#b2f2bb', // 产出（图片）
 };
 
 /** 纯文本 */
