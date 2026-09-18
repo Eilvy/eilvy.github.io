@@ -61,32 +61,37 @@
 ## 📂 博客项目结构
 
 ```text
-├── public/          # 静态资源
+├── public/              # 原样拷贝的静态资源
+├── docs/                # 项目文档（架构分析）
+├── plan/                # 历史设计与实施记录
 ├── src/
-│   ├── assets/      # 资源文件
-│   ├── components/  # 组件
-│   ├── content/     # 博客文章（Markdown / MDX）
-│   ├── layouts/     # 布局模板
-│   └── pages/       # 页面
+│   ├── assets/          # 需经 Astro 优化的图片
+│   ├── components/      # 可复用 UI
+│   │   └── whiteboard/  # 画板子系统（Excalidraw 只读查看器）
+│   ├── content/blog/    # 博客文章（Markdown / MDX）
+│   ├── data/            # 友链等静态数据
+│   ├── layouts/         # 页面骨架（Base → Blog → Post）
+│   ├── pages/           # 路由（文件即路由）
+│   ├── styles/          # 全站样式
+│   ├── types/           # 共享类型
+│   └── utils/           # 纯函数（排序、日期等）
 ├── astro.config.mjs
 ├── package.json
 └── tsconfig.json
 ```
 
+> 详细的架构说明、内容管线、画板子系统与踩坑记录见
+> [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)。
+
 ## 🚀 本地运行
 
 ```sh
-# 安装依赖
-npm install
+npm install       # 安装依赖
 
-# 启动开发服务器
-npm run dev
-
-# 构建生产版本
-npm run build
-
-# 预览构建结果
-npm run preview
+npm run dev       # 启动开发服务器
+npm run build     # 构建生产版本 → dist/
+npm run preview   # 预览构建结果
+npm run check     # 类型检查（astro check）
 ```
 
 ---

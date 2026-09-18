@@ -8,8 +8,8 @@ categories: ['容器', '网络']
 author: 'eilvy'
 ---
 
-import VethPairWhiteboard from '../../components/whiteboard/VethPairWhiteboard.astro';
 import WhiteboardLoader from '../../components/whiteboard/WhiteboardLoader.astro';
+import { vethPairScene } from '../../components/whiteboard/veth-pair.scene';
 import {
 	hop1Scene,
 	hop2Scene,
@@ -47,7 +47,13 @@ import {
 
 每个 Pod 有一个 veth pair，一根线两个头：
 
-<VethPairWhiteboard />
+<WhiteboardLoader
+	elements={vethPairScene}
+	label="veth pair 拓扑：宿主机侧 vethXXXX 插在 cni0 网桥上，Pod 侧 eth0，两端由同一对 veth 连通"
+	placeholderHeight={240}
+	height={420}
+	buttonText="点击加载拓扑图"
+/>
 
 <details>
 <summary>等价的 ASCII 图（便于复制 / 无 JS 环境）</summary>

@@ -39,29 +39,58 @@ Astro 5.18 → Vite 6 → 必须用 `@astrojs/react@4`（其依赖 `plugin-react
 
 ```
 .
-├── astro.config.mjs          # 构建配置（集成、Shiki 代码高亮）
-├── package.json
-├── tailwind.config.js        # 仅启用 typography 插件
-├── tsconfig.json             # 继承 astro/tsconfigs/base，paths 别名 @/*
-├── public/                   # 原样拷贝的静态资源（favicon、robots.txt）
+├── astro.config.mjs            # 构建配置（集成、Shiki 代码高亮）
+├── package.json                # 依赖与脚本（dev / build / check / preview）
+├── tailwind.config.js          # 仅启用 typography 插件
+├── tsconfig.json               # 继承 astro/tsconfigs/base，paths 别名 @/*
+├── .github/workflows/deploy.yml # 推 main 自动部署到 GitHub Pages
+├── public/                     # 原样拷贝的静态资源（favicon、robots.txt）
 ├── docs/
-│   └── ARCHITECTURE.md       # 本文档
+│   └── ARCHITECTURE.md         # 本文档
+├── plan/                       # 历史设计与实施记录（非运行时代码）
+│   ├── STAGE5_CONTENT_GUIDE.md
+│   ├── build-plan/             # 建站各阶段完成记录
+│   └── update-plan/            # 历次功能变更方案
 └── src/
-    ├── consts.ts             # 站点级常量（标题/描述/邮箱/GitHub/每页条数）
-    ├── content.config.ts     # 内容集合 schema（Astro 5 的配置位置）
-    ├── content/blog/         # 文章源文件（.md / .mdx）
-    ├── types/blog.ts         # 博客数据的共享类型
-    ├── utils/posts.ts        # 文章排序、日期、标签等纯函数
-    ├── data/                 # 友链数据（friends.json + .d.ts）
-    ├── styles/global.css     # 全站样式（含暗色模式与代码块方案）
-    ├── assets/               # 需经 Astro 优化的图片
-    ├── layouts/              # 页面骨架
-    ├── components/           # 可复用 UI 组件
-    │   └── whiteboard/       # 画板子系统（见第 5 节）
-    └── pages/                # 路由（文件即路由）
+    ├── consts.ts               # 站点级常量（标题/描述/邮箱/GitHub/每页条数）
+    ├── content.config.ts       # 内容集合 schema（Astro 5 的配置位置）
+    ├── content/blog/           # 文章源文件（.md / .mdx）
+    ├── types/blog.ts           # 博客数据的共享类型
+    ├── utils/posts.ts          # 文章排序、日期、标签等纯函数
+    ├── data/                   # 友链数据（friends.json + .d.ts）
+    ├── styles/global.css       # 全站样式（含暗色模式与代码块方案）
+    ├── assets/                 # 需经 Astro 优化的图片
+    ├── layouts/                # 页面骨架（见下）
+    ├── components/             # 可复用 UI（见下）
+    │   └── whiteboard/         # 画板子系统（见第 5 节）
+    └── pages/                  # 路由（文件即路由）
 ```
 
-### 各层职责
+### `layouts/` —— 页面骨架
+
+三层嵌套，职责自外向内收窄：
+
+| 文件 | 职责 |
+|---|---|
+| `BaseLayout.astro` | `<html>` 外壳、主题引导脚本（防 FOUC）、SEO、跳过链接 |
+| `BlogLayout.astro` | 在 BaseLayout 之上加 Header / `<main>` / Footer，转发 SEO 参数 |
+| `PostLayout.astro` | 文章页专用：hero 图、标题、日期、标签、目录侧栏、分类页脚 |
+
+### `components/` —— 可复用 UI
+
+| 文件 | 职责 |
+|---|---|
+| `Header.astro` | 顶部导航 + 主题切换 + GitHub 入口 |
+| `HeaderLink.astro` | 导航项，自动标记当前页 |
+| `Footer.astro` | 页脚（站点信息 + 友链，数据来自 `data/friends.json`） |
+| `PostCard.astro` | 列表页文章卡片（含「更新于」标记） |
+| `Tag.astro` | 标签胶囊，可作链接或纯展示 |
+| `FormattedDate.astro` | 日期格式化，支持紧凑 / 长格式 |
+| `SEO.astro` | meta / OpenGraph / canonical / JSON-LD |
+| `TableOfContents.astro` | 文章目录侧栏 + 滚动高亮 |
+| `whiteboard/` | 画板子系统，见第 5 节 |
+
+### 各层职责边界
 
 | 位置 | 职责 | 不该放什么 |
 |---|---|---|
@@ -71,6 +100,7 @@ Astro 5.18 → Vite 6 → 必须用 `@astrojs/react@4`（其依赖 `plugin-react
 | `pages/` | 路由 + 数据获取 + 排序 | 不堆样式细节（放组件或 global.css） |
 | `utils/` | 纯函数，无副作用 | 不依赖 DOM |
 | `types/` | 类型定义 | 不放运行时值 |
+| `plan/` | 历史方案存档 | 不放会随代码演进的说明（那属于 `docs/`） |
 
 ---
 
@@ -190,11 +220,23 @@ Shiki 输出形如 `<code><span class="line">…</span>\n<span class="line">…<
 
 ### 5.1 文件
 
-| 文件 | 职责 |
-|---|---|
-| `Whiteboard.tsx` | React 组件：内嵌视图 + 全屏查看器两种模式 |
-| `veth-pair.scene.ts` | veth pair 拓扑的场景数据（纯数据） |
-| `VethPairWhiteboard.astro` | 薄包装：懒加载外壳 + island 模板 |
+分三层：**通用外壳 / 共享件 / 场景数据**。
+
+| 文件 | 层级 | 职责 |
+|---|---|---|
+| `WhiteboardLoader.astro` | 外壳 | 通用懒加载容器：占位按钮 + `<template>` + 克隆挂载。所有画板统一用它 |
+| `Whiteboard.tsx` | 外壳 | React 组件：内嵌视图（只读插图）+ 全屏查看器两种模式 |
+| `scene-kit.ts` | 共享件 | 配色常量、字体常量、布局件（`txt`/`box`/`vArrow`/`hArrow`/`hFlow`/`groupFrame`/`vStack`） |
+| `osi-flow.scenes.ts` | 场景数据 | OSI 一文的 6 张图：总览 + 四跳 + veth 内核实现 |
+| `veth-pair.scene.ts` | 场景数据 | veth pair 拓扑 |
+
+**新增一张画板的做法**：写一个场景数据文件（纯数据、单一配色），
+在 `.mdx` 里 `import` 场景与 `WhiteboardLoader`，传 `elements` 即可 ——
+不需要再写专用包装组件（早期 `VethPairWhiteboard.astro` 那种转发壳已移除，
+因为 6 个画板都用同一个外壳，多一层包装只会增加维护面）。
+
+**场景数据只写「骨架」字段**，`id` / `seed` / `version` / 绑定关系由
+`convertToExcalidrawElements` 补全。
 
 ### 5.2 懒加载（点击加载）
 
@@ -217,6 +259,14 @@ Excalidraw 主 chunk 约 **1.1MB（gzip 约 361KB）**。若直接
 > （见 `astro/dist/runtime/server/hydration.js`）。只有经 Astro 渲染流程产出的
 > island 才带该属性，手动 import 绕过整条链路，拿不到 preamble。
 > 改为 `<template>` 后 island 由 Astro 正常产出，dev/prod 均可。
+
+**多画板共存的关键**：Astro 的 island 运行时脚本（定义 `self.Astro.only` 与
+`customElements.define('astro-island')`）整页**只输出一次**，且会被排进
+**第一个** `<template>` 内。`<template>` 内容是惰性的，脚本不执行 ——
+于是直接点非首个画板时，克隆出的 `<astro-island>` 是未知元素、无人处理。
+因此 `WhiteboardLoader` 在插入 island 前会先把引导脚本从模板取出、
+重建为可执行节点追加到 `head`（只执行一次；含 `customElements.define`，
+重复执行会抛错）。
 
 ### 5.3 两种显示模式
 
@@ -300,10 +350,15 @@ Excalidraw 在 `theme--dark` 下会给画布整体套
 改 `src/consts.ts` 的 `POSTS_PER_PAGE`。
 
 **新增一个画板**
-参考 `components/whiteboard/`：写一个场景数据文件（纯数据、单一配色），
-再写一个 `.astro` 包装（`<template>` + 克隆）与 `.mdx` 里引用。
-场景元素只需写「骨架」字段，`id`/`seed`/绑定关系由
-`convertToExcalidrawElements` 补全。
+1. 在 `components/whiteboard/` 写场景数据（纯数据、**单一浅色配色**，
+   暗色交给 Excalidraw 反相；用 `scene-kit` 的 `box`/`txt`/`vArrow` 等搭）
+2. 在 `.mdx` 里 `import` 该场景与 `WhiteboardLoader`，传 `elements` / `label` /
+   `height` 即可 —— 无需另写包装组件
+3. 箭头标注一律用箭头自带的 `label`（不要另写 `text` 元素，否则会偏）；
+   label 过长会在箭头上折行盖住箭头，此时应放宽箭头间距或缩短文字
+
+**新增文章里的图（不改代码）**
+非交互场景直接用 Markdown 图片即可；只有需要缩放/平移等交互才上画板。
 
 **改主题色 / 新增颜色**
 在 `global.css` 的 `:root` 与 `html.dark` 两处同步加变量，组件里用 `var()` 引用。
