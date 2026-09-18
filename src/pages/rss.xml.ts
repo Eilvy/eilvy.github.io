@@ -10,6 +10,9 @@ export async function GET(context: any) {
 		title: SITE_TITLE,
 		description: SITE_DESCRIPTION,
 		site: context.site,
+		// 让浏览器直接打开 /rss.xml 时渲染成可读列表，而不是摊开原始 XML。
+		// 仅影响「浏览器查看」，RSS 阅读器仍解析原始 XML，不受影响。
+		stylesheet: '/rss-style.xsl',
 		items: posts.map((post) => ({
 			title: post.data.title,
 			description: post.data.description,

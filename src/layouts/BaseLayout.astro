@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 import SEO from '../components/SEO.astro';
+import { SITE_TITLE } from '../consts';
 import type { ImageMetadata } from 'astro';
 
 interface Props {
@@ -58,7 +59,16 @@ const {
 		</script>
 		
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		
+
+		<!--
+			订阅源自动发现声明。
+			浏览器与 RSS 阅读器据此自动找到订阅地址（否则在 Feedly 之类里
+			输入网址会提示「未找到订阅源」，必须手动填 /rss.xml）。
+			此前这两行随 BaseHead.astro 一起被误删，这里补回。
+		-->
+		<link rel="alternate" type="application/rss+xml" title={SITE_TITLE} href="/rss.xml" />
+		<link rel="sitemap" type="application/xml" href="/sitemap-index.xml" />
+
 		<!-- Preconnect to fonts -->
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
