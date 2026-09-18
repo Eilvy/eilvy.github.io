@@ -69,15 +69,61 @@ const {
 </div>
 
 <script>
+	/*
+	 * 把被 <template> 关住的 Astro 引导脚本「请」出来执行。
+	 *
+	 * ── 问题 ──
+	 * 页面里有多个画板时，Astro 只会输出一次 island 运行时脚本
+	 * （定义 self.Astro.only 与 customElements.define('astro-island')），
+	 * 而它恰好被排在了**第一个** <template> 内部。
+	 * <template> 的内容是惰性的：脚本不会执行，元素也不参与渲染。
+	 * 于是：
+	 *   - 直接点最后一个画板 → 克隆出的 <astro-island> 是未知元素，
+	 *     没有任何逻辑处理它，画板不加载（但占位按钮已隐藏，看起来像卡住）；
+	 *   - 之后倒序点到第一个画板 → 引导脚本随克隆进入真实 DOM 并执行，
+	 *     自定义元素被注册，浏览器会**追溯升级**此前已插入的所有
+	 *     <astro-island>，于是一瞬间全部加载出来。
+	 * 这正是「必须点到第一个才全部出现」的原因。
+	 *
+	 * ── 修法 ──
+	 * 在插入 island 之前，先把引导脚本从模板里取出来执行一次
+	 * （只做一次，用 data 标记）。脚本本身是幂等的（重复定义自定义元素
+	 * 会抛错，所以必须只执行一次），执行后所有画板就能各自独立加载，
+	 * 点哪个都不会影响其他。
+	 */
+	const ensureIslandRuntime = () => {
+		if (document.documentElement.dataset.wbRuntimeReady === '1') return;
+		const tpl = document.querySelector<HTMLTemplateElement>('.wb-tpl');
+		if (!tpl) return;
+		// 模板内、<astro-island> 之前的 <script> 即 Astro 的引导脚本
+		const bootstrap: HTMLScriptElement[] = [];
+		for (const node of Array.from(tpl.content.childNodes)) {
+			if (node.nodeType === Node.ELEMENT_NODE) {
+				const el = node as Element;
+				if (el.tagName === 'SCRIPT') bootstrap.push(el as HTMLScriptElement);
+				if (el.tagName === 'ASTRO-ISLAND') break;
+			}
+		}
+		for (const old of bootstrap) {
+			// 模板里的 script 克隆出来不会执行，需重建一个新节点
+			const s = document.createElement('script');
+			s.textContent = old.textContent;
+			document.head.appendChild(s);
+		}
+		document.documentElement.dataset.wbRuntimeReady = '1';
+	};
+
 	document.querySelectorAll<HTMLElement>('.wb-loader').forEach((root) => {
 		root.querySelector('.wb-btn')?.addEventListener('click', () => {
 			const tpl = root.querySelector<HTMLTemplateElement>('.wb-tpl');
 			const mount = root.querySelector<HTMLElement>('.wb-mount');
 			if (!tpl || !mount) return;
 
-			// 先切到 ready，让 .wb-mount 变成可见，island 连接后才能量到正确尺寸
+			// 先确保 island 运行时已就绪，否则克隆出来的元素没人认领
+			ensureIslandRuntime();
+
+			// 切到 ready，让 .wb-mount 可见，island 连接后才能量到正确尺寸
 			root.dataset.state = 'ready';
-			// 克隆模板内容 → island 接入 DOM → 自动加载 preamble 并 hydrate
 			mount.appendChild(tpl.content.cloneNode(true));
 		});
 	});
