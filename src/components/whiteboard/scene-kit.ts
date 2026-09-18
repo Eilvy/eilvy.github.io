@@ -1,6 +1,9 @@
 /**
  * 画板场景的共享构建件。
  *
+ * 绘制技巧与踩坑记录见 docs/WHITEBOARD_GUIDE.md
+ * （配色约定、箭头用法、布局取舍、交付前自查清单）。
+ *
  * 所有场景共用一套「浅色主题」配色 —— 暗色模式不另写一套：
  * Excalidraw 在 theme--dark 下会给画布整体套
  *   filter: invert(93%) hue-rotate(180deg)

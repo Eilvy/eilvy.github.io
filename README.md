@@ -62,7 +62,7 @@
 
 ```text
 ├── public/              # 原样拷贝的静态资源
-├── docs/                # 项目文档（架构分析）
+├── docs/                # 项目文档（架构分析、画板绘制指南）
 ├── plan/                # 历史设计与实施记录
 ├── src/
 │   ├── assets/          # 需经 Astro 优化的图片
@@ -81,7 +81,9 @@
 ```
 
 > 详细的架构说明、内容管线、画板子系统与踩坑记录见
-> [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)。
+> [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)；
+> 用画板给文章配图的实操技巧见
+> [docs/WHITEBOARD_GUIDE.md](./docs/WHITEBOARD_GUIDE.md)。
 
 ## 🚀 本地运行
 

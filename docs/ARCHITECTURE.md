@@ -46,7 +46,8 @@ Astro 5.18 → Vite 6 → 必须用 `@astrojs/react@4`（其依赖 `plugin-react
 ├── .github/workflows/deploy.yml # 推 main 自动部署到 GitHub Pages
 ├── public/                     # 原样拷贝的静态资源（favicon、robots.txt）
 ├── docs/
-│   └── ARCHITECTURE.md         # 本文档
+│   ├── ARCHITECTURE.md         # 本文档（结构与机制）
+│   └── WHITEBOARD_GUIDE.md     # 画板绘制指南（布局技巧与踩坑）
 ├── plan/                       # 历史设计与实施记录（非运行时代码）
 │   ├── STAGE5_CONTENT_GUIDE.md
 │   ├── build-plan/             # 建站各阶段完成记录
@@ -217,6 +218,9 @@ Shiki 输出形如 `<code><span class="line">…</span>\n<span class="line">…<
 ## 5. 画板子系统
 
 这是项目中唯一带客户端交互的部分，也是踩坑最多的地方。
+
+> **本节讲「怎么实现」；「怎么画」见 [WHITEBOARD_GUIDE.md](./WHITEBOARD_GUIDE.md)**
+> （布局技巧、配色约定、箭头用法、交付前自查清单）。
 
 ### 5.1 文件
 
