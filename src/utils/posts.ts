@@ -18,22 +18,47 @@ export function isUpdated(post: BlogPost): boolean {
 }
 
 /**
- * 统一排序规则：
- * 1. 置顶文章优先，置顶之间按 pinOrder 升序；
- * 2. 其余按「有效更新时间」倒序（最新更新的排前面）。
+ * 统一排序规则（依次比较，先满足者胜出）：
+ *
+ * 1. 置顶优先；同为置顶按 pinOrder 升序
+ * 2. 「有效更新时间」倒序（最新更新的排前面）
+ * 3. 创建时间倒序（同一天更新时，较新的文章在前）
+ * 4. id 升序（兜底）
+ *
+ * ── 为什么需要 3、4 两个次级键 ──
+ * 只按更新时间排序时，同一天更新的文章会「相等」。
+ * 相等时 JS 的 sort 是稳定的，会保留集合返回顺序 ——
+ * 那依赖 getCollection 的遍历顺序，并非有意的规则；
+ * 一旦内容组织方式变化（如增删文件、改文件名）就可能整体调换。
+ * 实测本仓库就存在这种情况：[k8s] Service 与 OSI 网络链路两篇的
+ * updatedDate 都是 2026-09-18，谁在前纯属巧合。
+ *
+ * 加上 3、4 之后比较成为**全序**：任意两篇都有确定的先后，
+ * 排序结果不依赖输入顺序，也不会随构建环境变化。
  */
 export function sortPosts(posts: BlogPost[]): BlogPost[] {
 	return [...posts].sort((a, b) => {
 		const aPin = a.data.pin;
 		const bPin = b.data.pin;
 
+		// 1. 置顶优先
+		if (aPin !== bPin) return aPin ? -1 : 1;
 		if (aPin && bPin) {
-			return (a.data.pinOrder ?? 999) - (b.data.pinOrder ?? 999);
+			const byPinOrder = (a.data.pinOrder ?? 999) - (b.data.pinOrder ?? 999);
+			// pinOrder 也相同时不直接返回 0，继续走下面的通用规则兜底
+			if (byPinOrder !== 0) return byPinOrder;
 		}
-		if (aPin) return -1;
-		if (bPin) return 1;
 
-		return getUpdatedDate(b).valueOf() - getUpdatedDate(a).valueOf();
+		// 2. 有效更新时间倒序
+		const byUpdated = getUpdatedDate(b).valueOf() - getUpdatedDate(a).valueOf();
+		if (byUpdated !== 0) return byUpdated;
+
+		// 3. 创建时间倒序
+		const byPub = b.data.pubDate.valueOf() - a.data.pubDate.valueOf();
+		if (byPub !== 0) return byPub;
+
+		// 4. id 兜底，保证全序
+		return a.id.localeCompare(b.id);
 	});
 }
 
