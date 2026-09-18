@@ -13,7 +13,7 @@
  * 避免出现独立 text 与图形重叠、或箭头终点悬空。
  */
 
-import { C, box, txt, vArrow, hFlow, arrowTo, type El } from './scene-kit';
+import { C, box, txt, vArrow, hFlow, type El } from './scene-kit';
 
 /* ─────────────────────────────────────────────
  * 一、目标链路

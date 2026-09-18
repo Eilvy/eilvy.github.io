@@ -63,6 +63,16 @@ export const C = {
 	control: '#ffec99', // 控制参数 / 编排层
 	engine: '#a5d8ff', // 执行引擎（ComfyUI / 采样）
 	output: '#b2f2bb', // 产出（图片）
+
+	/*
+	 * Kafka 语境：生产端 → Broker → 消费端，外加事务协调。
+	 * 同样复用上面的取值，只是换成该语境下的语义名 ——
+	 * 在 Kafka 的图里用 C.engine 表示 broker 会很别扭。
+	 */
+	kafkaProducer: '#ffd8a8', // 生产端
+	kafkaBroker: '#a5d8ff', // Broker / 副本存储
+	kafkaConsumer: '#b2f2bb', // 消费端
+	kafkaTxn: '#d0bfff', // 事务 / 协调者
 };
 
 /** 纯文本 */
