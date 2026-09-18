@@ -7,6 +7,13 @@ categories: ['云原生', '网关']
 author: 'eilvy'
 ---
 
+import WhiteboardLoader from '../../components/whiteboard/WhiteboardLoader.astro';
+import {
+	filterChainScene,
+	pluginTimelineScene,
+	lifecycleScene,
+} from '../../components/whiteboard/envoy-wasm.scenes';
+
 > 面向对「Envoy WASM / 过滤器链」流程还比较模糊的同学，从**为什么有它 → 是什么 → 怎么写 → 怎么跑起来 → 在网关里怎么串联**逐层讲清楚。
 >
 > 内容基于一个企业级 AI 网关的真实配置与插件代码整理，已对仓库名与内部路径做泛化处理。
@@ -201,6 +208,16 @@ make run      # 起 Docker Envoy，加载 wasm 插件
 
 ### 5.1 完整时序
 
+<WhiteboardLoader
+	elements={filterChainScene}
+	label="HTTP 过滤器链完整时序：请求经 Listener 与 HTTP Connection Manager 进入过滤器链，按 http_filters 顺序过 route-guard、key-auth、scheduler、rate-limiter、ai-proxy、ai-log、router，再由 Cluster 转发到上游；响应沿同一链倒序返回"
+	buttonText="点击加载过滤器链时序图"
+	height={800}
+/>
+
+<details>
+<summary>等价的 ASCII 图（便于复制 / 无 JS 环境）</summary>
+
 ```
 客户端请求
    │
@@ -231,7 +248,19 @@ make run      # 起 Docker Envoy，加载 wasm 插件
 [客户端收到响应]
 ```
 
+</details>
+
 ### 5.2 每个插件内部的时间线（以 ai-log 为例）
+
+<WhiteboardLoader
+	elements={pluginTimelineScene}
+	label="单插件内部时间线：decode 阶段处理请求头与请求体后转发到上游；encode 阶段处理响应头，再按流式或非流式分支分别处理响应体，最后 onHttpStreamDone 收尾"
+	buttonText="点击加载插件时间线图"
+	height={600}
+/>
+
+<details>
+<summary>等价的 ASCII 图（便于复制 / 无 JS 环境）</summary>
 
 ```
 decode 阶段（请求方向）：
@@ -245,6 +274,8 @@ encode 阶段（响应方向）：
    └─ 流式：onStreamingResponseBody 逐 chunk 处理（提取 token/首字节时间）
   onHttpStreamDone ──► 流结束收尾
 ```
+
+</details>
 
 ---
 
@@ -274,6 +305,16 @@ WASM 沙箱隔离 —— 单个插件 panic 不会崩掉 Envoy 主进程，只�
 
 从写代码到在网关生效：
 
+<WhiteboardLoader
+	elements={lifecycleScene}
+	label="从写代码到在网关生效：开发期把 Go 源码编译为 .wasm 字节码，配置期在 envoy.yaml.tmpl 的 http_filters 中挂载并加载，运行期由 Envoy 按过滤器链顺序处理请求并转发到上游"
+	buttonText="点击加载全流程总览图"
+	height={680}
+/>
+
+<details>
+<summary>等价的 ASCII 图（便于复制 / 无 JS 环境）</summary>
+
 ```
 ┌────────────── 开发期 ──────────────┐
 │ Go 源码 (main.go + init 注册回调)    │
@@ -297,6 +338,8 @@ WASM 沙箱隔离 —— 单个插件 panic 不会崩掉 Envoy 主进程，只�
 │ → router 转发到上游                │
 └────────────────────────────────────┘
 ```
+
+</details>
 
 ---
 
