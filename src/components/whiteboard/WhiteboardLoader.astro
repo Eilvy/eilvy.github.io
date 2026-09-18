@@ -59,7 +59,10 @@ const {
 		</button>
 	</div>
 
-	<div class="wb-status" role="status">正在加载…</div>
+	<div class="wb-status" role="status">
+		<span class="wb-spinner" aria-hidden="true"></span>
+		<span class="wb-status-text">正在加载画板…</span>
+	</div>
 	<div class="wb-mount"></div>
 
 	{/* island 存放在模板里，点击后才克隆到 .wb-mount */}
@@ -122,9 +125,39 @@ const {
 			// 先确保 island 运行时已就绪，否则克隆出来的元素没人认领
 			ensureIslandRuntime();
 
-			// 切到 ready，让 .wb-mount 可见，island 连接后才能量到正确尺寸
-			root.dataset.state = 'ready';
+			/*
+			 * 先切到 loading（显示 spinner），等画板**真正渲染出来**再切 ready。
+			 *
+			 * 为什么不能直接切 ready：Excalidraw 主 chunk 约 1.1MB，
+			 * 从「island 接入 DOM」到「画布画出来」有一段时间（dev 下尤其明显，
+			 * 因为模块是逐个未打包请求的）。这段时间 .wb-mount 里是空的，
+			 * 若已切 ready 就会露出一块空白 —— 这正是要修的观感问题。
+			 *
+			 * 判定「渲染好了」用 .whiteboard（React 组件根节点）出现为准，
+			 * 它出现就意味着 React 已挂载、Excalidraw 已开始渲染。
+			 */
+			root.dataset.state = 'loading';
+
+			const reveal = () => {
+				root.dataset.state = 'ready';
+			};
+
+			// 用 MutationObserver 而不是轮询：更及时，也不用管清理时机
+			const mo = new MutationObserver(() => {
+				if (mount.querySelector('.whiteboard')) {
+					mo.disconnect();
+					reveal();
+				}
+			});
+			mo.observe(mount, { childList: true, subtree: true });
+
 			mount.appendChild(tpl.content.cloneNode(true));
+
+			// 兜底：万一观察不到（例如结构变化），4 秒后无条件显示，避免一直转圈
+			setTimeout(() => {
+				mo.disconnect();
+				if (root.dataset.state === 'loading') reveal();
+			}, 4000);
 		});
 	});
 </script>
@@ -150,13 +183,49 @@ const {
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 0.5em;
+		gap: 0.75em;
 		padding: 1.25em;
 		background-color: var(--color-bg-secondary);
+		/* 与占位按钮的最小高度对齐，避免切换时高度跳变 */
+		min-height: 120px;
 	}
 
 	.wb-loader[data-state='ready'] > .wb-mount {
 		display: block;
+	}
+
+	/*
+	 * 加载态：转圈 + 文案。
+	 * 用 border 画的圆环（无图片、无 JS），并用 currentColor 跟随主题，
+	 * 这样浅色/暗色都不用另写一套颜色。
+	 */
+	.wb-status-text {
+		font-size: 0.875rem;
+		color: var(--color-text-light);
+	}
+
+	.wb-spinner {
+		width: 22px;
+		height: 22px;
+		border: 2px solid var(--color-border);
+		border-top-color: var(--color-primary);
+		border-radius: 50%;
+		animation: wb-spin 0.7s linear infinite;
+	}
+
+	@keyframes wb-spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	/* 尊重「减少动态效果」偏好：不转圈，改为静态提示 */
+	@media (prefers-reduced-motion: reduce) {
+		.wb-spinner {
+			animation: none;
+			border-top-color: var(--color-border);
+			border-left-color: var(--color-primary);
+		}
 	}
 
 	/* 占位期的按钮做得克制些：不抢正文注意力 */
