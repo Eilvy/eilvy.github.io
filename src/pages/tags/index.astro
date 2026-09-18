@@ -1,0 +1,168 @@
+---
+import BlogLayout from '../../layouts/BlogLayout.astro';
+import { getSortedPosts, collectTagStats } from '../../utils/posts';
+import { SITE_TITLE } from '../../consts';
+
+/*
+ * 标签索引页。
+ *
+ * 此前只有 /tags/<tag> 单标签页，没有任何汇总入口：
+ * 读者只能从首页标签云进，而首页为了版面只显示前 10 个 ——
+ * 标签一多，靠后的就几乎不可达。这里给出一个完整的、不随标签数增长的入口。
+ */
+const posts = await getSortedPosts();
+const tags = collectTagStats(posts);
+const totalPosts = posts.length;
+---
+
+<BlogLayout title={`标签 - ${SITE_TITLE}`} description="按标签浏览全部文章">
+	<div class="tags-page">
+		<header class="page-header">
+			<h1>标签</h1>
+			<p class="description">
+				共 <span class="count">{tags.length}</span> 个标签，
+				覆盖 <span class="count">{totalPosts}</span> 篇文章
+			</p>
+		</header>
+
+		<ul class="tag-list">
+			{tags.map((tag) => (
+				<li>
+					<a href={`/tags/${tag.slug}/`} class="tag-item">
+						<span class="tag-name">
+							<span class="hash">#</span>
+							{tag.name}
+						</span>
+						<span class="tag-count">{tag.count}</span>
+					</a>
+				</li>
+			))}
+		</ul>
+
+		<div class="back-to-blog">
+			<a href="/blog" class="back-link">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M19 12H5M12 19l-7-7 7-7"/>
+				</svg>
+				返回博客列表
+			</a>
+		</div>
+	</div>
+</BlogLayout>
+
+<style>
+	.tags-page {
+		width: 100%;
+		max-width: 1200px;
+		margin: 0 auto;
+		padding: 2em 1em;
+	}
+
+	.page-header {
+		text-align: center;
+		margin-bottom: 3em;
+		padding: 2em;
+		background: linear-gradient(135deg, var(--color-bg-secondary) 0%, var(--color-bg) 100%);
+		border-radius: 16px;
+		border: 1px solid var(--color-border);
+	}
+
+	.page-header h1 {
+		font-size: 2.5rem;
+		margin: 0 0 0.5em 0;
+		color: var(--color-text);
+	}
+
+	.page-header .description {
+		font-size: 1.125rem;
+		color: var(--color-text-light);
+		margin: 0;
+	}
+
+	.page-header .count {
+		color: var(--color-primary);
+		font-weight: 600;
+	}
+
+	/* 用网格而非云状排布：数量对齐后更易扫读，也便于以后加排序/筛选 */
+	.tag-list {
+		list-style: none;
+		margin: 0 0 3em;
+		padding: 0;
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+		gap: 0.75em;
+	}
+
+	.tag-item {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75em;
+		padding: 0.75em 1em;
+		color: var(--color-text);
+		text-decoration: none;
+		background-color: var(--color-bg-secondary);
+		border: 1px solid var(--color-border);
+		border-radius: 10px;
+		transition: all 0.2s;
+	}
+
+	.tag-item:hover {
+		color: var(--color-primary);
+		border-color: var(--color-primary);
+		background-color: var(--color-bg);
+	}
+
+	.tag-name {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25em;
+		font-weight: 500;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.hash {
+		color: var(--color-primary);
+	}
+
+	.tag-count {
+		flex-shrink: 0;
+		min-width: 1.75em;
+		padding: 0.1em 0.5em;
+		font-size: 0.8125rem;
+		text-align: center;
+		color: var(--color-text-light);
+		background-color: var(--color-bg);
+		border-radius: 9999px;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.back-to-blog {
+		text-align: center;
+	}
+
+	.back-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5em;
+		padding: 0.75em 1.5em;
+		color: var(--color-text);
+		text-decoration: none;
+		border: 1px solid var(--color-border);
+		border-radius: 8px;
+		transition: all 0.2s;
+	}
+
+	.back-link:hover {
+		color: var(--color-primary);
+		border-color: var(--color-primary);
+	}
+
+	.back-link svg {
+		width: 18px;
+		height: 18px;
+	}
+</style>

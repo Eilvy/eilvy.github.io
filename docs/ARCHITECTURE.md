@@ -159,12 +159,17 @@ tags[], categories[], draft, author, pin, pinOrder
 | `/` | `pages/index.astro` | 首页，展示最新 `POSTS_PER_PAGE`（6）篇 + 标签云 |
 | `/blog` | `pages/blog/index.astro` | 全部文章 |
 | `/blog/<id>` | `pages/blog/[...slug].astro` | 文章详情（含目录侧栏） |
+| `/tags` | `pages/tags/index.astro` | 标签索引：列出全部标签与文章数（按数量倒序）|
 | `/tags/<tag>` | `pages/tags/[tag].astro` | 按标签筛选 |
 | `/about` | `pages/about.astro` | 个人介绍 |
 | `/rss.xml` | `pages/rss.xml.ts` | RSS，`pubDate` 取有效更新时间 |
 
 标签路由由 `getStaticPaths` 从实际文章聚合生成（此前把「全部文章」和
 「已发布文章」混用，会导致草稿的标签也生成空页面）。
+
+**为什么要有 `/tags` 索引页**：此前只有单标签页，唯一入口是首页标签云，
+而首页为版面只显示前 10 个 —— 标签一多，靠后的几乎不可达。
+索引页给出一个不随标签数增长的完整入口（当前 13 个标签全覆盖）。
 
 ---
 

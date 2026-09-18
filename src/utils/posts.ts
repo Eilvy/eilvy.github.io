@@ -68,11 +68,46 @@ export async function getSortedPosts(): Promise<BlogPost[]> {
 	return sortPosts(posts.filter((post) => !post.data.draft));
 }
 
-/** 汇总文章用到的全部标签（去重） */
+/** 汇总文章用到的全部标签（去重，保持首次出现的顺序） */
 export function collectTags(posts: BlogPost[]): string[] {
 	const tags = new Set<string>();
 	posts.forEach((post) => {
 		post.data.tags.forEach((tag) => tags.add(tag));
 	});
 	return Array.from(tags);
+}
+
+export interface TagStat {
+	/** 标签原文（保留原始大小写，如 k8s / Network） */
+	name: string;
+	/** 用于 URL 的小写形式，与 /tags/[tag] 路由保持一致 */
+	slug: string;
+	/** 该标签下的文章数 */
+	count: number;
+}
+
+/**
+ * 统计每个标签的文章数，按「文章数倒序 → 名称升序」排列。
+ *
+ * 供 /tags/ 索引页使用：读者可以先看哪些标签内容多。
+ * 名称升序作为次级键，保证同数量时顺序确定（不依赖输入顺序）。
+ */
+export function collectTagStats(posts: BlogPost[]): TagStat[] {
+	const map = new Map<string, TagStat>();
+
+	posts.forEach((post) => {
+		post.data.tags.forEach((name) => {
+			const slug = name.toLowerCase();
+			const hit = map.get(slug);
+			if (hit) {
+				hit.count += 1;
+			} else {
+				map.set(slug, { name, slug, count: 1 });
+			}
+		});
+	});
+
+	return Array.from(map.values()).sort(
+		(a, b) => b.count - a.count || a.name.localeCompare(b.name)
+	);
 }

@@ -6,19 +6,62 @@ type Props = HTMLAttributes<'a'>;
 const { href, class: className, ...props } = Astro.props;
 const pathname = Astro.url.pathname.replace(import.meta.env.BASE_URL, '');
 const subpath = pathname.match(/[^\/]+/g);
+// 一级路径匹配：/blog/xxx 也算「博客」选中
 const isActive = href === pathname || href === '/' + (subpath?.[0] || '');
 ---
 
-<a href={href} class:list={[className, { active: isActive }]} {...props}>
+<a href={href} class:list={[className, { active: isActive }]} aria-current={isActive ? 'page' : undefined} {...props}>
 	<slot />
 </a>
+
 <style>
 	a {
+		position: relative;
 		display: inline-block;
+		padding: 0.25em 0;
+		color: var(--color-text-light);
 		text-decoration: none;
+		transition: color 0.2s;
 	}
+
+	a:hover {
+		color: var(--color-text);
+	}
+
+	/*
+	 * 选中态用主色 + 底部指示条。
+	 *
+	 * 原先只有 font-weight: bolder + text-decoration: underline ——
+	 * 一是下划线紧贴文字、深色模式下偏弱；二是加粗会改变字宽，
+	 * 导航项在切换页面时会有轻微位移。
+	 * 现在用主色区分、并用绝对定位的 ::after 画指示条：
+	 * 不改变文字排版，也就不会导致位移；颜色在深浅两种主题下都清晰。
+	 */
 	a.active {
-		font-weight: bolder;
-		text-decoration: underline;
+		color: var(--color-primary);
+		font-weight: 500;
+	}
+
+	a.active::after {
+		content: '';
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: -0.35em;
+		height: 2px;
+		border-radius: 1px;
+		background-color: var(--color-primary);
+	}
+
+	/* 键盘聚焦时同样能看到指示（焦点样式由 global.css 提供，这里只补指示条） */
+	a:focus-visible::after {
+		content: '';
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: -0.35em;
+		height: 2px;
+		border-radius: 1px;
+		background-color: var(--color-primary);
 	}
 </style>
