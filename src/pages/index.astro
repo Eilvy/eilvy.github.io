@@ -2,7 +2,7 @@
 import BlogLayout from '../layouts/BlogLayout.astro';
 import PostCard from '../components/PostCard.astro';
 import Tag from '../components/Tag.astro';
-import { getSortedPosts, collectTags } from '../utils/posts';
+import { getSortedPosts, collectTags, tagUrl } from '../utils/posts';
 import { SITE_TITLE, SITE_DESCRIPTION, POSTS_PER_PAGE } from '../consts';
 
 // 已发布文章：置顶优先，其余按「有效更新时间」倒序
@@ -45,7 +45,7 @@ const allTags = collectTags(allPosts);
 				<h2>热门标签</h2>
 				<div class="tags-cloud">
 					{allTags.slice(0, 10).map((tag) => (
-						<Tag name={tag} href={`/tags/${tag.toLowerCase()}/`} />
+						<Tag name={tag} href={tagUrl(tag)} />
 					))}
 				</div>
 			</section>

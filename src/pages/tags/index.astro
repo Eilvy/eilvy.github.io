@@ -1,6 +1,6 @@
 ---
 import BlogLayout from '../../layouts/BlogLayout.astro';
-import { getSortedPosts, collectTagStats } from '../../utils/posts';
+import { getSortedPosts, collectTagStats, tagUrl } from '../../utils/posts';
 import { SITE_TITLE } from '../../consts';
 
 /*
@@ -28,7 +28,7 @@ const totalPosts = posts.length;
 		<ul class="tag-list">
 			{tags.map((tag) => (
 				<li>
-					<a href={`/tags/${tag.slug}/`} class="tag-item">
+					<a href={tagUrl(tag.name)} class="tag-item">
 						<span class="tag-name">
 							<span class="hash">#</span>
 							{tag.name}

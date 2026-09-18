@@ -77,11 +77,21 @@ export function collectTags(posts: BlogPost[]): string[] {
 	return Array.from(tags);
 }
 
+/**
+ * 由标签名生成标签页 URL。
+ *
+ * 必须编码：标签名可能含空格（如 `Stable Diffusion`）或非 ASCII
+ * （如 `数据结构`）。直接拼进 href 会得到含原始空格的非法 URL ——
+ * 浏览器虽会自动编码、看起来能用，但严格来说不合法，
+ * 某些爬虫/工具可能处理不一致。
+ */
+export function tagUrl(name: string): string {
+	return `/tags/${encodeURIComponent(name.toLowerCase())}/`;
+}
+
 export interface TagStat {
 	/** 标签原文（保留原始大小写，如 k8s / Network） */
 	name: string;
-	/** 用于 URL 的小写形式，与 /tags/[tag] 路由保持一致 */
-	slug: string;
 	/** 该标签下的文章数 */
 	count: number;
 }
@@ -97,12 +107,13 @@ export function collectTagStats(posts: BlogPost[]): TagStat[] {
 
 	posts.forEach((post) => {
 		post.data.tags.forEach((name) => {
-			const slug = name.toLowerCase();
-			const hit = map.get(slug);
+			// 用统一的小写形式做 key，避免 K8s / k8s 被算成两个标签
+			const key = name.toLowerCase();
+			const hit = map.get(key);
 			if (hit) {
 				hit.count += 1;
 			} else {
-				map.set(slug, { name, slug, count: 1 });
+				map.set(key, { name, count: 1 });
 			}
 		});
 	});
