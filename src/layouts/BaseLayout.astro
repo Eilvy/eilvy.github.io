@@ -31,16 +31,20 @@ const {
 	<head>
 		<!-- 立即执行的主题检测脚本，防止 FOUC - 必须在 CSS 加载前执行 -->
 		<script>
-			// 应用主题并标记为已加载
+			/*
+			 * 主题初始化。必须在 CSS 之前执行以防 FOUC，
+			 * 因此放在 head 的内联脚本里（Header 不再重复这套逻辑）。
+			 */
 			function applyTheme() {
 				const savedTheme = localStorage.getItem('theme');
 				const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+				const dark = savedTheme === 'dark' || (!savedTheme && prefersDark);
 				
-				if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
-					document.documentElement.classList.add('dark');
-				}
+				// 用 toggle 而不是只 add：这样「系统偏好变了」或
+				// 从暗色导航回浅色时也能正确复原，不会残留上一次的类
+				document.documentElement.classList.toggle('dark', dark);
 				
-				// 添加 class 表示主题已加载，移除 visibility: hidden
+				// 标记主题已加载，移除 visibility: hidden
 				document.documentElement.classList.add('theme-loaded');
 			}
 			

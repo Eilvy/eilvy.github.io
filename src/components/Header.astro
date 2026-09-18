@@ -15,9 +15,10 @@ import HeaderLink from './HeaderLink.astro';
 		</div>
 		
 		<div class="nav-right">
-			<button 
-				class="theme-toggle" 
+			<button
+				class="theme-toggle"
 				aria-label="切换深色模式"
+				aria-pressed="false"
 				data-theme-toggle
 			>
 				<svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -43,9 +44,21 @@ import HeaderLink from './HeaderLink.astro';
 						<path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
 					</svg>
 				</a>
+				<a href="/rss.xml" title="订阅 RSS">
+					<span class="sr-only">RSS 订阅</span>
+					<svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24" aria-hidden="true">
+						<path d="M6.18 17.82a2.18 2.18 0 1 1-4.36 0 2.18 2.18 0 0 1 4.36 0zM1.82 9.27v3.05a9.86 9.86 0 0 1 9.86 9.86h3.05c0-7.13-5.78-12.91-12.91-12.91zm0-7.09v3.05C10.03 5.23 16.77 11.97 16.77 20.18h3.05C19.82 10.29 11.71 2.18 1.82 2.18z"/>
+					</svg>
+				</a>
 			</div>
 			
-			<button class="mobile-menu-toggle" aria-label="菜单" data-mobile-menu>
+			<button
+				class="mobile-menu-toggle"
+				aria-label="菜单"
+				aria-expanded="false"
+				aria-controls="mobile-menu-panel"
+				data-mobile-menu
+			>
 				<span></span>
 				<span></span>
 				<span></span>
@@ -53,7 +66,7 @@ import HeaderLink from './HeaderLink.astro';
 		</div>
 	</nav>
 	
-	<div class="mobile-menu" data-mobile-menu-panel>
+	<div class="mobile-menu" id="mobile-menu-panel" data-mobile-menu-panel>
 		<a href="/">首页</a>
 		<a href="/blog">博客</a>
 		<a href="/about">关于</a>
@@ -61,33 +74,74 @@ import HeaderLink from './HeaderLink.astro';
 </header>
 
 <script is:inline>
-	// 深色模式切换
-	const themeToggle = document.querySelector('[data-theme-toggle]');
+	/*
+	 * 页头交互。
+	 *
+	 * 注意：这里**不再**做主题初始化。
+	 * 初始化由 BaseLayout 的 head 内联脚本负责（它必须在 CSS 之前跑以防 FOUC）。
+	 * 之前两处都读 localStorage 并改 .dark，逻辑重复，改一处容易漏另一处。
+	 * 这里只负责「点击切换」，并在切换后同步 aria-pressed。
+	 */
 	const html = document.documentElement;
-	
-	// 检查本地存储的主题偏好
-	const savedTheme = localStorage.getItem('theme');
-	const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-	
-	if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
-		html.classList.add('dark');
-	}
-	
-	if (themeToggle) {
-		themeToggle.addEventListener('click', () => {
-			html.classList.toggle('dark');
-			const newTheme = html.classList.contains('dark') ? 'dark' : 'light';
-			localStorage.setItem('theme', newTheme);
-		});
-	}
-	
-	// 移动端菜单
+	const themeToggle = document.querySelector('[data-theme-toggle]');
+
+	const syncThemeAria = () => {
+		// 让读屏软件知道当前处于哪种模式（只有 aria-label 是不够的）
+		themeToggle?.setAttribute('aria-pressed', String(html.classList.contains('dark')));
+	};
+
+	/*
+	 * 立即同步一次，并在 DOM 就绪后再同步一次。
+	 *
+	 * 为什么要两次：主题初始化脚本在 head 里且是 type="module"，
+	 * 属于延迟执行；而本脚本是普通 <script>，解析到就执行。
+	 * 因此此刻 .dark 可能还没被加上，只同步一次会得到错误的状态
+	 * （实测：暗色下刷新，aria-pressed 会停在 false）。
+	 * DOMContentLoaded 时模块脚本已执行完毕，再同步一次才是准的。
+	 */
+	syncThemeAria();
+	document.addEventListener('DOMContentLoaded', syncThemeAria);
+
+	themeToggle?.addEventListener('click', () => {
+		html.classList.toggle('dark');
+		localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
+		syncThemeAria();
+	});
+
+	// ── 移动端菜单 ──
 	const mobileMenuToggle = document.querySelector('[data-mobile-menu]');
 	const mobileMenuPanel = document.querySelector('[data-mobile-menu-panel]');
-	
+
+	const setMenuOpen = (open) => {
+		mobileMenuPanel?.classList.toggle('active', open);
+		mobileMenuToggle?.classList.toggle('active', open);
+		mobileMenuToggle?.setAttribute('aria-expanded', String(open));
+	};
+
 	mobileMenuToggle?.addEventListener('click', () => {
-		mobileMenuPanel?.classList.toggle('active');
-		mobileMenuToggle.classList.toggle('active');
+		setMenuOpen(!mobileMenuPanel?.classList.contains('active'));
+	});
+
+	// 点菜单里的链接后收起（否则整页刷新前会闪一下展开态；
+	// 将来若启用 View Transitions，也能避免菜单残留打开）
+	mobileMenuPanel?.querySelectorAll('a').forEach((a) => {
+		a.addEventListener('click', () => setMenuOpen(false));
+	});
+
+	// Esc 关闭，并把焦点还给按钮
+	document.addEventListener('keydown', (e) => {
+		if (e.key === 'Escape' && mobileMenuPanel?.classList.contains('active')) {
+			setMenuOpen(false);
+			mobileMenuToggle?.focus();
+		}
+	});
+
+	// 点菜单外部关闭
+	document.addEventListener('click', (e) => {
+		if (!mobileMenuPanel?.classList.contains('active')) return;
+		const t = e.target;
+		if (mobileMenuPanel.contains(t) || mobileMenuToggle?.contains(t)) return;
+		setMenuOpen(false);
 	});
 </script>
 
