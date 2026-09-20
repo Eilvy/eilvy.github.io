@@ -90,6 +90,18 @@ const updated = isUpdated(post);
 		line-height: 1.4;
 	}
 	
+	/*
+	 * 元信息行（日期 + 标签）固定占一行，不换行。
+	 *
+	 * 原因：此处原为 flex-wrap，日期 + 3 个标签的总宽会逼近卡片宽度
+	 * （实测 316px vs 容器 318px，只差 2px）。标签名稍长（如
+	 * `Stable Diffusion`）就挤到第二行，使该卡片的标题/描述/阅读全文
+	 * 整体下移 28px，与同排其他卡片错位。
+	 *
+	 * 改为不换行后，装不下的标签会被 .tags 的 max-height 整颗裁掉
+	 * （而不是露出半个胶囊）—— 标签本就是辅助信息，宁可少显示一个，
+	 * 也要保证卡片内部各行对齐。
+	 */
 	.post-meta {
 		display: flex;
 		align-items: center;
@@ -97,7 +109,8 @@ const updated = isUpdated(post);
 		margin-bottom: 1em;
 		font-size: 0.875rem;
 		color: var(--color-text-light);
-		flex-wrap: wrap;
+		flex-wrap: nowrap;
+		min-width: 0;
 	}
 	
 	.post-meta time {
@@ -119,7 +132,17 @@ const updated = isUpdated(post);
 	.tags {
 		display: flex;
 		gap: 0.5em;
+		/* 允许换行 + 只留一行高度：装不下的整颗标签被裁掉，不会露出半颗 */
 		flex-wrap: wrap;
+		min-width: 0;
+		overflow: hidden;
+		/* 一行的高度：标签自身 padding + 字号推出来的实际高度约 27px */
+		max-height: 27px;
+	}
+
+	/* 标签不参与压缩，避免被挤成畸形宽度 */
+	.post-meta .tags :global(.tag) {
+		flex: none;
 	}
 	
 	.post-description {

@@ -60,7 +60,10 @@ const tagStats = collectTagStats(allPosts);
 					</a>
 				</div>
 				<div class="tags-cloud">
-					{/* 已按文章数倒序，取前 12 个；首页放不下的由 /tags 兜底 */}
+					{/*
+					 * 取前 12 个，配合下方 6 列网格正好铺满 2 行（6 + 6），
+					 * 不会出现「满行 + 零头」的参差。剩余的由 /tags 兜底。
+					 */}
 					{tagStats.slice(0, 12).map((t) => (
 						<a href={tagUrl(t.name)} class="tag-chip">
 							<span class="tag-chip__name">{t.name}</span>
@@ -211,10 +214,22 @@ const tagStats = collectTagStats(allPosts);
 	 * 标签胶囊：名称 + 篇数。
 	 * 篇数用 tabular-nums 让数字等宽，多个胶囊并排时右侧对齐更整齐。
 	 */
+	/*
+	 * 标签云用 6 列网格，而不是 flex 自动换行。
+	 *
+	 * 原因：flex 换行会按标签实际宽度排，实测 12 个标签排成
+	 * 「第 1 行 10 个（1004px）+ 第 2 行 2 个（212px）」——
+	 * 第二行孤零零两颗，右侧一大片空白，看着像没排完。
+	 *
+	 * 固定 6 列后，12 个正好 6 + 6 两行，行行等宽、边界整齐。
+	 * 用 justify-items: start 让胶囊保持自身宽度左对齐 ——
+	 * 若用 stretch，短标签（如「AI」）会被拉成很宽的胶囊，内部大片空白。
+	 */
 	.tags-cloud {
-		display: flex;
-		flex-wrap: wrap;
+		display: grid;
+		grid-template-columns: repeat(6, 1fr);
 		gap: 0.75em;
+		justify-items: start;
 	}
 
 	.tag-chip {
@@ -284,6 +299,11 @@ const tagStats = collectTagStats(allPosts);
 		.posts-grid {
 			grid-template-columns: 1fr;
 			gap: 1.5em;
+		}
+
+		/* 窄屏放不下 6 列，降为 2 列（12 个 → 6 行，依然整齐） */
+		.tags-cloud {
+			grid-template-columns: repeat(2, 1fr);
 		}
 		
 		.section-header {
