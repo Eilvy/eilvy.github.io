@@ -556,7 +556,60 @@ html.dark *:focus-visible {
 	line-height: var(--code-line-height);
 }
 
-/* 引用块 *//* 引用块 */
+/*
+ * ── 入场动画 ──
+ *
+ * 设计要点：
+ *
+ * 1. 隐藏状态只写在 @keyframes 的 from 里，配合 animation-fill-mode: both。
+ *    这样「不支持动画」或「用户要求减少动效」时，元素天然就是最终状态 ——
+ *    不会出现「JS/CSS 失效导致内容永久隐形」那个经典事故。
+ *    （对比：若写成 .anim { opacity: 0 } 再靠 JS 加类显示，一旦 JS 挂了内容就没了。）
+ *
+ * 2. 只用 opacity + transform：走 GPU 合成层，不触发重排，也不会造成布局抖动。
+ *
+ * 3. 用 --anim-i 做错峰延迟（0.06s 一档），形成自上而下的节奏感。
+ *    上限用 min() 压到 0.42s，避免卡片多时最后一屏等太久。
+ */
+@keyframes anim-rise {
+	from {
+		opacity: 0;
+		transform: translateY(16px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+.anim {
+	animation: anim-rise 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+	animation-delay: min(calc(var(--anim-i, 0) * 0.06s), 0.42s);
+}
+
+/*
+ * 卡片外层包了一层 .anim div 用于动画，网格项因此变成这个 div。
+ * 需要让内部 .post-card 撑满，否则同一行卡片高度会不一致
+ * （.post-card 原本靠网格 stretch 才等高）。
+ */
+.posts-grid > .anim,
+.posts-list > .anim {
+	display: flex;
+}
+
+.posts-grid > .anim > .post-card,
+.posts-list > .anim > .post-card {
+	flex: 1;
+}
+
+/* 减少动效偏好：不做位移/淡入，直接显示 */
+@media (prefers-reduced-motion: reduce) {
+	.anim {
+		animation: none;
+	}
+}
+
+/* 引用块 */
 .prose blockquote {
 	border-left: 4px solid var(--color-primary);
 	padding-left: 1em;

@@ -10,7 +10,7 @@ const posts = await getSortedPosts();
 
 <BlogLayout title={`博客 - ${SITE_TITLE}`} description="所有技术文章列表">
 	<div class="blog-page">
-		<header class="page-header">
+		<header class="page-header anim" style="--anim-i:0">
 			<h1>所有文章</h1>
 			<p class="description">
 				已发布 <span class="count">{posts.length}</span> 篇文章
@@ -18,8 +18,10 @@ const posts = await getSortedPosts();
 		</header>
 		
 		<div class="posts-list">
-			{posts.map((post) => (
-				<PostCard post={post} />
+			{posts.map((post, i) => (
+				<div class="anim" style={`--anim-i:${1 + i}`}>
+					<PostCard post={post} />
+				</div>
 			))}
 		</div>
 		

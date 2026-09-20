@@ -26,7 +26,7 @@ const posts = (await getSortedPosts()).filter((post) =>
 
 <BlogLayout title={`标签：${tagName} - ${SITE_TITLE}`} description={`包含标签 "${tagName}" 的文章`}>
 	<div class="tag-page">
-		<header class="page-header">
+		<header class="page-header anim" style="--anim-i:0">
 			<h1>
 				<span class="tag-label">#</span>
 				{tagName}
@@ -37,8 +37,10 @@ const posts = (await getSortedPosts()).filter((post) =>
 		</header>
 		
 		<div class="posts-list">
-			{posts.map((post) => (
-				<PostCard post={post} />
+			{posts.map((post, i) => (
+				<div class="anim" style={`--anim-i:${1 + i}`}>
+					<PostCard post={post} />
+				</div>
 			))}
 		</div>
 		

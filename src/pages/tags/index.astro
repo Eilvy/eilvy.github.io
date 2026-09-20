@@ -17,7 +17,7 @@ const totalPosts = posts.length;
 
 <BlogLayout title={`标签 - ${SITE_TITLE}`} description="按标签浏览全部文章">
 	<div class="tags-page">
-		<header class="page-header">
+		<header class="page-header anim" style="--anim-i:0">
 			<h1>标签</h1>
 			<p class="description">
 				共 <span class="count">{tags.length}</span> 个标签，
@@ -26,8 +26,8 @@ const totalPosts = posts.length;
 		</header>
 
 		<ul class="tag-list">
-			{tags.map((tag) => (
-				<li>
+			{tags.map((tag, i) => (
+				<li class="anim" style={`--anim-i:${1 + i}`}>
 					<a href={tagUrl(tag.name)} class="tag-item">
 						<span class="tag-name">
 							<span class="hash">#</span>
