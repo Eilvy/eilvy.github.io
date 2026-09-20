@@ -100,6 +100,28 @@ const heroImageMetadata = resolveHeroImage(heroImage);
 							))}
 						</div>
 					)}
+
+					{/*
+					 * 版权声明。
+					 *
+					 * 这不是「防爬」——静态站的内容必须原样送到浏览器，
+					 * 技术上拦不住任何有意抓取的人。它的作用是：
+					 *   1. 法律层面：声明权利归属，便于日后维权或向
+					 *      转载方主张署名
+					 *   2. 读者层面：让愿意守规矩的转载者知道该标注
+					 *      出处与链接
+					 * 爬虫层面的约定见 public/robots.txt。
+					 */}
+					<div class="copyright">
+						<p class="copyright-line">
+							本文采用
+							<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank" rel="noopener noreferrer license">CC BY-NC-SA 4.0</a>
+							许可协议。转载请注明出处并附上原文链接。
+						</p>
+						<p class="copyright-line">
+							原文地址：<a href={Astro.url.href}>{Astro.url.href}</a>
+						</p>
+					</div>
 				</footer>
 			</article>
 		</main>
@@ -201,6 +223,35 @@ const heroImageMetadata = resolveHeroImage(heroImage);
 		margin-top: 3rem;
 		padding-top: 1rem;
 		border-top: 1px solid var(--color-border);
+	}
+
+	/*
+	 * 版权声明做克制些：小字号、次要色，不与正文抢注意力。
+	 * 原文链接用 break-all —— URL 含中文时很长，不换行会撑破容器。
+	 */
+	.copyright {
+		margin-top: 1.5rem;
+		padding: 1rem 1.25rem;
+		font-size: 0.8125rem;
+		line-height: 1.7;
+		color: var(--color-text-light);
+		background-color: var(--color-bg-secondary);
+		border-radius: 8px;
+	}
+
+	.copyright-line {
+		margin: 0;
+	}
+
+	.copyright-line + .copyright-line {
+		margin-top: 0.35rem;
+	}
+
+	.copyright a {
+		color: var(--color-primary);
+		text-decoration: underline;
+		text-underline-offset: 2px;
+		word-break: break-all;
 	}
 	
 	@media (max-width: 768px) {

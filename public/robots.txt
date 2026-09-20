@@ -1,12 +1,76 @@
+# robots.txt —— 爬虫访问约定
+#
+# ⚠️ 重要前提：robots.txt 只是「君子协定」，对恶意爬虫毫无约束力。
+# 它唯一的作用是挡掉「守规矩的采集器」。要真正防住需要服务端或 CDN。
+# 这里是成本最低的一层。
+
+# ─────────────────────────────────────────────
+# 搜索引擎：放行（这是正常的流量来源）
+# ─────────────────────────────────────────────
 User-agent: *
 Allow: /
 
-# Sitemap location
-Sitemap: https://eilvy.github.io/sitemap-index.xml
-
-# Crawl-delay (optional)
+# Crawl-delay 只被 Bing / Yandex 等部分爬虫识别，Google 会忽略。
+# 留着是给无节制的爬虫一个「请慢一点」的信号。
 Crawl-delay: 1
 
-# Disallow admin or private areas (if any)
-# Disallow: /admin/
-# Disallow: /private/
+# ─────────────────────────────────────────────
+# AI 训练用爬虫：拒绝
+#
+# 判断依据是「它抓走内容去做什么」：
+#   训练模型 —— 白嫖内容，不带来访问 → 拒绝
+#   搜索索引 —— 能把读者带回来       → 放行
+#
+# 下面这些是**纯训练**用途，禁掉不影响任何搜索曝光。
+# ─────────────────────────────────────────────
+
+# OpenAI 训练抓取（与 OAI-SearchBot 是两回事，后者影响
+# ChatGPT 搜索曝光，故不在此列）
+User-agent: GPTBot
+Disallow: /
+
+# Anthropic 模型训练
+User-agent: ClaudeBot
+Disallow: /
+
+# Common Crawl —— 大量开源数据集的上游，几乎必然进入各家训练集
+User-agent: CCBot
+Disallow: /
+
+# 字节跳动（豆包等）
+User-agent: Bytespider
+Disallow: /
+
+# Meta AI 训练
+User-agent: meta-externalagent
+Disallow: /
+
+# ─────────────────────────────────────────────
+# 「-Extended」类：Google / Apple 的 AI 训练开关
+#
+# 这两个是**专门设计成与搜索解耦**的 token：
+# Google 明确说明 Google-Extended 不影响 Google 搜索收录与排名；
+# Apple 同样说明 Applebot-Extended 不影响 Siri / Spotlight。
+# 所以禁掉它们 = 「不喂 AI 训练，但保留搜索流量」，最划算的一刀。
+# ─────────────────────────────────────────────
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: Applebot-Extended
+Disallow: /
+
+# ─────────────────────────────────────────────
+# 刻意**不**屏蔽的（附理由，便于以后复核）
+#
+# OAI-SearchBot       —— ChatGPT 搜索索引，禁了等于放弃该处曝光
+# Claude-SearchBot    —— 同上
+# Claude-User         —— 用户主动提问时的实时抓取，非批量采集
+# ChatGPT-User        —— 同上
+# PerplexityBot       —— 搜索引用性质，会带来流量
+# Googlebot / Bingbot —— 常规搜索，禁了等于自我除名
+#
+# 若日后想连搜索型 AI 一起禁，在上面加对应的 User-agent 段即可。
+# ─────────────────────────────────────────────
+
+# Sitemap location
+Sitemap: https://eilvy.github.io/sitemap-index.xml
