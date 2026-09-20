@@ -115,27 +115,96 @@ const tocHeadings = headings.filter(
 </style>
 
 <script>
-	// 滚动高亮当前章节
-	const observer = new IntersectionObserver(
-		(entries) => {
-			entries.forEach((entry) => {
-				if (entry.isIntersecting) {
-					const id = entry.target.id;
-					document.querySelectorAll('.toc-item').forEach((item: Element) => {
-						item.classList.remove('active');
-						if ((item as HTMLElement).dataset?.heading === id) {
-							item.classList.add('active');
-						}
+	/*
+	 * 目录滚动高亮 + 自动跟随。
+	 *
+	 * ── 修掉的两个问题 ──
+	 *
+	 * 1. 「当前项滚出目录自身可视区」
+	 *    目录条目多时（本文 25 条）会超出 max-height，成为一个独立滚动容器
+	 *    （实测 scrollHeight 1060px vs clientHeight 778px）。
+	 *    原先只切换 active 类、从不滚动它，于是高亮项滑到底部以下就看不见了 ——
+	 *    实测 25 项里有 8 次高亮落在可视区之外，而 toc.scrollTop 始终是 0。
+	 *    现在高亮后把它 scrollIntoView 到目录中间。
+	 *
+	 * 2. observer 的 rootMargin 判定不可靠
+	 *    原先用 rootMargin: '-20% 0px -80% 0px' 把判定线压到视口顶部 20% 处，
+	 *    依赖「射击线」是否被某个标题跨越来切换高亮 —— 快速滚动或标题间距
+	 *    不均时会漏掉，导致某些章节经过时**完全没有高亮**（实测 25 项只触发
+	 *    13 次）。
+	 *    改为「主动计算」：取所有标题中「最后一个已滚过顶部判定线」的那个。
+	 *    这样任意滚动位置都有确定结果，不会漏。
+	 */
+	const toc = document.querySelector('.table-of-contents');
+
+	if (toc) {
+		const items = Array.from(toc.querySelectorAll<HTMLElement>('.toc-item'));
+		/*
+		 * data-heading 存的是 slug。页面上第一个 h2 是页头（无 id），
+		 * 所以按 id 查更稳：只保留真的存在于页面的条目。
+		 */
+		const pairs = items
+			.map((item) => {
+				const id = item.dataset.heading;
+				const heading = id ? document.getElementById(id) : null;
+				return heading ? { item, heading } : null;
+			})
+			.filter((x): x is { item: HTMLElement; heading: HTMLElement } => x !== null);
+
+		if (pairs.length) {
+			let current: HTMLElement | null = null;
+
+			const setActive = (item: HTMLElement) => {
+				if (item === current) return;
+				current?.classList.remove('active');
+				item.classList.add('active');
+				current = item;
+
+				// 让高亮项跟着滚，落在目录可视区中间
+				const tr = toc.getBoundingClientRect();
+				const ir = item.getBoundingClientRect();
+				const outside = ir.top < tr.top || ir.bottom > tr.bottom;
+				if (outside) {
+					const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+					toc.scrollTo({
+						top:
+							toc.scrollTop +
+							(ir.top - tr.top) -
+							(tr.height - ir.height) / 2,
+						behavior: reduce ? 'auto' : 'smooth',
 					});
 				}
-			});
-		},
-		{
-			rootMargin: '-20% 0px -80% 0px',
-		}
-	);
+			};
 
-	document.querySelectorAll('h2, h3').forEach((heading) => {
-		observer.observe(heading);
-	});
+			/*
+			 * 判定线取视口高度的 25% 处：滚过这条线的标题算「已读到」，
+			 * 取其中最后一个作为当前章节 —— 比 IntersectionObserver 的
+			 * 交叉判定更不容易漏。
+			 */
+			const update = () => {
+				const line = window.innerHeight * 0.25;
+				let best: HTMLElement | null = null;
+				for (const { item, heading } of pairs) {
+					if (heading.getBoundingClientRect().top <= line) best = item;
+					else break; // 标题按文档顺序排列，一旦超过判定线即可停止
+				}
+				// 还没滚过第一个标题时，高亮第一个
+				setActive(best ?? pairs[0].item);
+			};
+
+			let ticking = false;
+			const onScroll = () => {
+				if (ticking) return;
+				ticking = true;
+				requestAnimationFrame(() => {
+					update();
+					ticking = false;
+				});
+			};
+
+			window.addEventListener('scroll', onScroll, { passive: true });
+			window.addEventListener('resize', onScroll, { passive: true });
+			update();
+		}
+	}
 </script>
