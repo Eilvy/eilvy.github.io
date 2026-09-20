@@ -7,10 +7,11 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "astro build && node scripts/build-md-source.mjs",
     "preview": "astro preview",
     "check": "astro check",
-    "astro": "astro"
+    "astro": "astro",
+    "md-source": "node scripts/build-md-source.mjs"
   },
   "dependencies": {
     "@astrojs/mdx": "^4.0.2",

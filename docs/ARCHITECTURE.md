@@ -45,9 +45,12 @@ Astro 5.18 → Vite 6 → 必须用 `@astrojs/react@4`（其依赖 `plugin-react
 ├── tsconfig.json               # 继承 astro/tsconfigs/base，paths 别名 @/*
 ├── .github/workflows/deploy.yml # 推 main 自动部署到 GitHub Pages
 ├── public/                     # 原样拷贝的静态资源（favicon、robots.txt）
+├── scripts/
+│   └── build-md-source.mjs     # 由 .mdx 生成纯 Markdown 版本（见下）
 ├── docs/
 │   ├── ARCHITECTURE.md         # 本文档（结构与机制）
-│   └── WHITEBOARD_GUIDE.md     # 画板绘制指南（布局技巧与踩坑）
+│   ├── WHITEBOARD_GUIDE.md     # 画板绘制指南（布局技巧与踩坑）
+│   └── md-source/              # .mdx 文章的纯 Markdown 副本（自动生成）
 ├── plan/                       # 历史设计与实施记录（非运行时代码）
 │   ├── STAGE5_CONTENT_GUIDE.md
 │   ├── build-plan/             # 建站各阶段完成记录
@@ -152,7 +155,28 @@ tags[], categories[], draft, author, pin, pinOrder
 首页、博客列表、标签页、RSS **全部**走 `getSortedPosts()`，
 避免此前四处各写一套排序逻辑（其中首页那份还用了 `as any`）。
 
-### 3.4 路由
+### 3.4 .mdx 的纯 Markdown 副本（`docs/md-source/`）
+
+部分文章用 `.mdx`（需要 `import` 画板组件）。`.mdx` 只适合本站构建，
+复制到其他平台会因不支持 JSX/自定义组件而渲染异常。
+因此构建时用 `scripts/build-md-source.mjs` 生成一份纯 Markdown 副本。
+
+```
+npm run md-source   # 单独生成
+npm run build       # 构建站点时顺带生成，保持同步
+```
+
+转换规则：去掉行首 `import`、把 `<WhiteboardLoader>` 换成占位提示、
+拆掉 `<details>` 外壳并保留内部 ASCII 图。脚本每次全量重建（保留手写的 README）。
+
+**目录为何放在 `docs/` 而不是内容目录下**：`content.config.ts` 的 loader 是
+`glob({ base: './src/content/blog', pattern: '**/*.{md,mdx}' })`，把副本放进
+该目录或其子目录会被**当成独立文章再收录一遍**，站点上出现重复内容。
+`docs/` 天然在 glob 覆盖范围之外。
+
+**只有 `.mdx` 需要副本** —— `.md` 文章本身就是纯 Markdown，无需重复一份。
+
+### 3.5 路由
 
 | 路由 | 文件 | 说明 |
 |---|---|---|
