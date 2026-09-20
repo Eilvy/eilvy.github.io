@@ -83,6 +83,22 @@ const {
 			author={author}
 			tags={tags}
 		/>
+		{/*
+			无 JS 兜底：主题脚本不会执行，.theme-loaded 永不出现，
+			若不覆盖就会整页空白。详见上方 <style> 里的说明。
+		*/}
+		<noscript>
+			<style>
+				/*
+				 * 必须 !important：这段样式位于 head 中、早于 Astro 注入的
+				 * 样式表（它们用 <link> 追加在 <head> 末尾），
+				 * 同优先级下后者胜出，覆盖会失效（实测确认）。
+				 */
+				html:not(.theme-loaded) {
+					visibility: visible !important;
+				}
+			</style>
+		</noscript>
 	</head>
 	<body>
 		<a href="#main-content" class="skip-link">跳转到主要内容</a>
@@ -92,6 +108,16 @@ const {
 
 <style is:global>
 	/* 防止 FOUC - 主题加载前隐藏页面 */
+	/*
+	 * 防 FOUC：主题脚本执行前先隐藏页面，避免「先亮色再跳暗色」的闪烁。
+	 *
+	 * ⚠️ 但这会造成一个隐患：如果 JS 被禁用或脚本报错，.theme-loaded
+	 * 永远不会被加上 —— 页面将**永久空白**。
+	 * （实测：禁用 JS 后整页 invisible，这是之前就存在的问题。）
+	 *
+	 * 下面的 <noscript> 覆盖是兜底：无 JS 时直接显示内容。
+	 * 代价是无 JS 用户会看到未应用主题的亮色版本 —— 远比空白页好。
+	 */
 	html:not(.theme-loaded) {
 		visibility: hidden;
 	}

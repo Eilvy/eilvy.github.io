@@ -16,22 +16,22 @@ const tagStats = collectTagStats(allPosts);
 <BlogLayout title={SITE_TITLE} description={SITE_DESCRIPTION}>
 	<div class="home">
 		<section class="hero">
-			<h1>👋 你好！这里是 Eilvy 的博客</h1>
+			<h1 class="anim" style="--anim-i:0">👋 你好！这里是 Eilvy 的博客</h1>
 			{/*
 			 * 必须写成一行：HTML 会把换行折叠成一个空格，
 			 * 于是「。」后面会多出一个空格（全角句号后不该有空格）。
 			 */}
-			<p class="lead">
+			<p class="lead anim" style="--anim-i:1">
 				后端 / 运维开发，关注容器与网络、AI 网关与中间件。这里记录我在实际项目里踩过的坑与想明白的事。
 			</p>
-			<div class="hero-actions">
+			<div class="hero-actions anim" style="--anim-i:2">
 				<a href="/blog" class="btn btn--primary">浏览全部文章</a>
 				<a href="/about" class="btn">关于我</a>
 			</div>
 		</section>
 		
 		<section class="latest-posts">
-			<div class="section-header">
+			<div class="section-header anim" style="--anim-i:3">
 				<h2>最新文章</h2>
 				<a href="/blog" class="view-all">
 					查看全部
@@ -42,15 +42,17 @@ const tagStats = collectTagStats(allPosts);
 			</div>
 			
 			<div class="posts-grid">
-				{posts.map((post) => (
-					<PostCard post={post} />
+				{posts.map((post, i) => (
+					<div class="anim" style={`--anim-i:${4 + i}`}>
+						<PostCard post={post} />
+					</div>
 				))}
 			</div>
 		</section>
 		
 		{tagStats.length > 0 && (
 			<section class="tags-section">
-				<div class="section-header">
+				<div class="section-header anim" style={`--anim-i:${4 + posts.length}`}>
 					<h2>标签</h2>
 					<a href="/tags" class="view-all">
 						全部标签
@@ -59,7 +61,7 @@ const tagStats = collectTagStats(allPosts);
 						</svg>
 					</a>
 				</div>
-				<div class="tags-cloud">
+				<div class="tags-cloud anim" style={`--anim-i:${5 + posts.length}`}>
 					{/*
 					 * 取前 12 个，配合下方 6 列网格正好铺满 2 行（6 + 6），
 					 * 不会出现「满行 + 零头」的参差。剩余的由 /tags 兜底。
@@ -268,6 +270,57 @@ const tagStats = collectTagStats(allPosts);
 		color: var(--color-primary);
 	}
 	
+	/*
+	 * ── 入场动画 ──
+	 *
+	 * 设计要点：
+	 *
+	 * 1. 隐藏状态只写在 @keyframes 的 from 里，配合 animation-fill-mode: both。
+	 *    这样「不支持动画」或「用户要求减少动效」时，元素天然就是最终状态 ——
+	 *    不会出现「JS/CSS 失效导致内容永久隐形」那个经典事故。
+	 *    （对比：若写成 .anim { opacity: 0 } 再靠 JS 加类显示，一旦 JS 挂了内容就没了。）
+	 *
+	 * 2. 只用 opacity + transform：走 GPU 合成层，不触发重排，也不会造成布局抖动。
+	 *
+	 * 3. 用 --anim-i 做错峰延迟（0.06s 一档），形成自上而下的节奏感。
+	 *    上限用 min() 压到 0.42s，避免卡片多时最后一屏等太久。
+	 */
+	@keyframes anim-rise {
+		from {
+			opacity: 0;
+			transform: translateY(16px);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
+	}
+
+	.anim {
+		animation: anim-rise 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+		animation-delay: min(calc(var(--anim-i, 0) * 0.06s), 0.42s);
+	}
+
+	/*
+	 * 卡片外层包了一层 .anim div 用于动画，网格项因此变成这个 div。
+	 * 需要让内部 .post-card 撑满，否则同一行卡片高度会不一致
+	 * （.post-card 原本靠网格 stretch 才等高）。
+	 */
+	.posts-grid > .anim {
+		display: flex;
+	}
+
+	.posts-grid > .anim > :global(.post-card) {
+		flex: 1;
+	}
+
+	/* 减少动效偏好：不做位移/淡入，直接显示 */
+	@media (prefers-reduced-motion: reduce) {
+		.anim {
+			animation: none;
+		}
+	}
+
 	@media (max-width: 768px) {
 		.home {
 			padding: 1em;
